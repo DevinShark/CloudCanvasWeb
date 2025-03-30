@@ -13,17 +13,26 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// Helper function to generate application URLs that work in both development and production
+function getAppUrl(path: string = ''): string {
+  // Determine if we're in Replit environment (production) or localhost (development)
+  const isReplitEnv = !!process.env.REPLIT_SLUG;
+  // Use current Replit slug for the domain if available, or hardcoded dev domain
+  const host = isReplitEnv
+    ? process.env.REPLIT_SLUG + ".replit.app" 
+    : "localhost:5000";
+  
+  // Create URL with appropriate protocol
+  const protocol = isReplitEnv ? "https" : "http";
+  return `${protocol}://${host}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
 // Email service class for sending various emails
 export class EmailService {
   // Send email verification
   static async sendVerificationEmail(user: User, verificationToken: string): Promise<void> {
-    // Get the host from the replit environment or use localhost for development
-    const host = process.env.REPLIT_SLUG 
-      ? `${process.env.REPLIT_SLUG}.replit.app` 
-      : "localhost:5000";
-    
-    // Create verification URL for the client-side route
-    const verificationUrl = `https://${host}/verify-email/${verificationToken}`;
+    // Use helper to generate verification URL for the client-side route
+    const verificationUrl = getAppUrl(`verify-email/${verificationToken}`);
     
     const mailOptions = {
       from: process.env.EMAIL_FROM || "Cloud Canvas <no-reply@cloudcanvas.com>",
@@ -50,12 +59,8 @@ export class EmailService {
   
   // Send password reset email
   static async sendPasswordResetEmail(user: User, resetToken: string): Promise<void> {
-    // Get the host from the replit environment or use localhost for development
-    const host = process.env.REPLIT_SLUG 
-      ? `${process.env.REPLIT_SLUG}.replit.app` 
-      : "localhost:5000";
-    
-    const resetUrl = `https://${host}/reset-password/${resetToken}`;
+    // Use helper to generate reset password URL
+    const resetUrl = getAppUrl(`reset-password/${resetToken}`);
     
     const mailOptions = {
       from: process.env.EMAIL_FROM || "Cloud Canvas <no-reply@cloudcanvas.com>",
@@ -85,12 +90,8 @@ export class EmailService {
     user: User, 
     subscription: Subscription
   ): Promise<void> {
-    // Get the host from the replit environment or use localhost for development
-    const host = process.env.REPLIT_SLUG 
-      ? `${process.env.REPLIT_SLUG}.replit.app` 
-      : "localhost:5000";
-      
-    const dashboardUrl = `https://${host}/dashboard`;
+    // Use helper to generate dashboard URL
+    const dashboardUrl = getAppUrl('dashboard');
     
     const mailOptions = {
       from: process.env.EMAIL_FROM || "Cloud Canvas <no-reply@cloudcanvas.com>",
@@ -130,12 +131,8 @@ export class EmailService {
     license: License, 
     subscription: Subscription
   ): Promise<void> {
-    // Get the host from the replit environment or use localhost for development
-    const host = process.env.REPLIT_SLUG 
-      ? `${process.env.REPLIT_SLUG}.replit.app` 
-      : "localhost:5000";
-      
-    const downloadUrl = `https://${host}/dashboard`;
+    // Use helper to generate dashboard URL
+    const downloadUrl = getAppUrl('dashboard');
     
     const mailOptions = {
       from: process.env.EMAIL_FROM || "Cloud Canvas <no-reply@cloudcanvas.com>",

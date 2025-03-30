@@ -2,6 +2,10 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
+// We'll determine the environment for our email URLs but won't change NODE_ENV
+// This helps us avoid issues with the Vite development server
+const isReplitEnvironment = !!process.env.REPLIT_SLUG;
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

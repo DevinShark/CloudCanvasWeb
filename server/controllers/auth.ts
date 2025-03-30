@@ -130,12 +130,17 @@ export const logout = (req: Request, res: Response) => {
 export const verifyEmail = async (req: Request, res: Response) => {
   try {
     const { token } = req.params;
-
-    // Find user with the verification token
-    const users = Array.from((await Promise.all(
-      Array.from(Array(1000).keys()).map(i => storage.getUser(i))
-    )).filter(Boolean) as any[]);
     
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: "Verification token is required"
+      });
+    }
+
+    // This approach is inefficient but works for our in-memory storage with small user numbers
+    // In a real database, we would query by token directly
+    const users = await getAllUsers();
     const user = users.find(u => u.verificationToken === token);
 
     if (!user) {
@@ -161,6 +166,19 @@ export const verifyEmail = async (req: Request, res: Response) => {
     });
   }
 };
+
+// Helper function to get all users - for in-memory storage
+async function getAllUsers() {
+  // Fetch users from ID 1 to 1000
+  // For a real database, we would use a more efficient query
+  const usersPromises = [];
+  for (let i = 1; i <= 1000; i++) {
+    usersPromises.push(storage.getUser(i));
+  }
+  
+  const users = await Promise.all(usersPromises);
+  return users.filter(Boolean) as any[];
+}
 
 // Request password reset
 export const forgotPassword = async (req: Request, res: Response) => {
@@ -225,11 +243,8 @@ export const resetPassword = async (req: Request, res: Response) => {
 
     const { token, password } = validationResult.data;
 
-    // Find user with the reset token
-    const users = Array.from((await Promise.all(
-      Array.from(Array(1000).keys()).map(i => storage.getUser(i))
-    )).filter(Boolean) as any[]);
-    
+    // Find user with the reset token using our helper function
+    const users = await getAllUsers();
     const user = users.find(u => u.resetPasswordToken === token);
 
     if (!user) {
