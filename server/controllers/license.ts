@@ -316,23 +316,14 @@ export const generateTrialLicense = async (req: Request, res: Response) => {
       });
     }
     
-    // Create a trial subscription (special case where subscriptionId is null)
-    const trialStartDate = new Date();
-    const trialEndDate = new Date();
-    trialEndDate.setDate(trialEndDate.getDate() + 30); // 30-day trial
+    // Create a trial license with the integrated LicenseGate service
+    const trialLicense = await LicenseGateService.createTrialLicense(user, 30); // 30-day trial
     
-    // Create trial license directly without a subscription
-    const licenseKey = LicenseGateService.generateLicenseKey();
-    const trialLicense = await storage.createLicense({
-      userId,
-      licenseKey,
-      isActive: true,
-      expiryDate: trialEndDate, // Date object works here due to our updated schema
-      subscriptionId: null, // Null subscription indicates this is a trial license
-      createdAt: trialStartDate.toISOString() // This is optional so string is fine
-    });
+    // Create mock subscription object for email template
+    const trialStartDate = new Date(trialLicense.createdAt || new Date());
+    const trialEndDate = new Date(trialLicense.expiryDate);
     
-    // Send trial license email with a mock subscription object for email template
+    // Send trial license email
     await EmailService.sendLicenseKeyEmail(
       user, 
       trialLicense, 
@@ -352,7 +343,7 @@ export const generateTrialLicense = async (req: Request, res: Response) => {
     res.status(201).json({
       success: true,
       message: "Trial license generated successfully",
-      licenseKey,
+      licenseKey: trialLicense.licenseKey,
       license: trialLicense
     });
   } catch (error) {

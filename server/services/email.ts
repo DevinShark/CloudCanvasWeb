@@ -134,14 +134,31 @@ export class EmailService {
     // Use helper to generate dashboard URL
     const downloadUrl = getAppUrl('dashboard');
     
+    // Determine if this is a trial license
+    const isTrial = !license.subscriptionId || subscription.plan === 'trial';
+    
+    // Set the appropriate subject and messaging based on license type
+    const subject = isTrial 
+      ? "Your Cloud Canvas Trial License Key" 
+      : "Your Cloud Canvas License Key";
+    
+    const introMessage = isTrial
+      ? "Thank you for trying Cloud Canvas. Your trial license key is ready for use:"
+      : "Thank you for subscribing to Cloud Canvas. Your license key is ready for use:";
+    
+    // Trial-specific message
+    const trialMessage = isTrial 
+      ? `<p style="color: #e63946; font-weight: bold;">This is a 30-day trial license. After the trial period ends, you'll need to purchase a subscription to continue using Cloud Canvas.</p>` 
+      : '';
+    
     const mailOptions = {
       from: process.env.EMAIL_FROM || "Cloud Canvas <no-reply@cloudcanvas.com>",
       to: user.email,
-      subject: "Your Cloud Canvas License Key",
+      subject: subject,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #2B3F6C; margin-bottom: 20px;">Your Cloud Canvas License Key</h2>
-          <p>Thank you for subscribing to Cloud Canvas. Your license key is ready for use:</p>
+          <p>${introMessage}</p>
           
           <div style="background-color: #f5f7fa; padding: 20px; border-radius: 5px; margin: 20px 0; font-family: monospace; word-break: break-all; font-size: 14px;">
             ${license.licenseKey}
@@ -149,6 +166,8 @@ export class EmailService {
           
           <p><strong>Plan:</strong> ${formatPlanName(subscription.plan)}</p>
           <p><strong>Expiration Date:</strong> ${formatDate(new Date(license.expiryDate))}</p>
+          
+          ${trialMessage}
           
           <p>Please download Cloud Canvas and enter your license key to activate the software:</p>
           
