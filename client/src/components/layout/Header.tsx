@@ -56,21 +56,116 @@ const Header = () => {
           
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
-            <Link href="/#features">
-              <a className="font-medium hover:text-accent transition-colors duration-200">Features</a>
-            </Link>
-            <Link href="/#workflow">
-              <a className="font-medium hover:text-accent transition-colors duration-200">Workflow</a>
-            </Link>
-            <Link href="/#applications">
-              <a className="font-medium hover:text-accent transition-colors duration-200">Applications</a>
-            </Link>
-            <Link href="/#pricing">
-              <a className="font-medium hover:text-accent transition-colors duration-200">Pricing</a>
-            </Link>
-            <Link href="/#contact">
-              <a className="font-medium hover:text-accent transition-colors duration-200">Contact</a>
-            </Link>
+            <a 
+              href="#features" 
+              className="font-medium hover:text-accent transition-colors duration-200 cursor-pointer"
+              onClick={(e) => {
+                e.preventDefault();
+                const element = document.getElementById('features');
+                if (element) {
+                  const headerHeight = 80;
+                  const elementPosition = element.getBoundingClientRect().top;
+                  const offsetPosition = elementPosition + window.pageYOffset - headerHeight;
+                  window.scrollTo({
+                    top: offsetPosition,
+                    behavior: 'smooth'
+                  });
+                }
+                if (location !== "/") {
+                  window.history.pushState({}, "", "/#features");
+                }
+              }}
+            >
+              Features
+            </a>
+            <a 
+              href="#workflow" 
+              className="font-medium hover:text-accent transition-colors duration-200 cursor-pointer"
+              onClick={(e) => {
+                e.preventDefault();
+                const element = document.getElementById('workflow');
+                if (element) {
+                  const headerHeight = 80;
+                  const elementPosition = element.getBoundingClientRect().top;
+                  const offsetPosition = elementPosition + window.pageYOffset - headerHeight;
+                  window.scrollTo({
+                    top: offsetPosition,
+                    behavior: 'smooth'
+                  });
+                }
+                if (location !== "/") {
+                  window.history.pushState({}, "", "/#workflow");
+                }
+              }}
+            >
+              Workflow
+            </a>
+            <a 
+              href="#applications" 
+              className="font-medium hover:text-accent transition-colors duration-200 cursor-pointer"
+              onClick={(e) => {
+                e.preventDefault();
+                const element = document.getElementById('applications');
+                if (element) {
+                  const headerHeight = 80;
+                  const elementPosition = element.getBoundingClientRect().top;
+                  const offsetPosition = elementPosition + window.pageYOffset - headerHeight;
+                  window.scrollTo({
+                    top: offsetPosition,
+                    behavior: 'smooth'
+                  });
+                }
+                if (location !== "/") {
+                  window.history.pushState({}, "", "/#applications");
+                }
+              }}
+            >
+              Applications
+            </a>
+            <a 
+              href="#pricing" 
+              className="font-medium hover:text-accent transition-colors duration-200 cursor-pointer"
+              onClick={(e) => {
+                e.preventDefault();
+                const element = document.getElementById('pricing');
+                if (element) {
+                  const headerHeight = 80;
+                  const elementPosition = element.getBoundingClientRect().top;
+                  const offsetPosition = elementPosition + window.pageYOffset - headerHeight;
+                  window.scrollTo({
+                    top: offsetPosition,
+                    behavior: 'smooth'
+                  });
+                }
+                if (location !== "/") {
+                  window.history.pushState({}, "", "/#pricing");
+                }
+              }}
+            >
+              Pricing
+            </a>
+            <a 
+              href="#contact" 
+              className="font-medium hover:text-accent transition-colors duration-200 cursor-pointer"
+              onClick={(e) => {
+                e.preventDefault();
+                const element = document.getElementById('contact');
+                if (element) {
+                  const headerHeight = 80;
+                  const elementPosition = element.getBoundingClientRect().top;
+                  const offsetPosition = elementPosition + window.pageYOffset - headerHeight;
+                  window.scrollTo({
+                    top: offsetPosition,
+                    behavior: 'smooth'
+                  });
+                }
+                if (location !== "/") {
+                  window.history.pushState({}, "", "/#contact");
+                }
+              }}
+            >
+              Contact
+            </a>
           </nav>
           
           <div className="hidden md:flex items-center space-x-4">
@@ -132,31 +227,121 @@ const Header = () => {
         {isMobileMenuOpen && (
           <nav className="md:hidden mt-6 pb-4">
             <div className="flex flex-col space-y-4">
-              <Link href="/#features">
-                <a className="font-medium hover:text-accent transition-colors duration-200" onClick={closeMobileMenu}>
-                  Features
-                </a>
-              </Link>
-              <Link href="/#workflow">
-                <a className="font-medium hover:text-accent transition-colors duration-200" onClick={closeMobileMenu}>
-                  Workflow
-                </a>
-              </Link>
-              <Link href="/#applications">
-                <a className="font-medium hover:text-accent transition-colors duration-200" onClick={closeMobileMenu}>
-                  Applications
-                </a>
-              </Link>
-              <Link href="/#pricing">
-                <a className="font-medium hover:text-accent transition-colors duration-200" onClick={closeMobileMenu}>
-                  Pricing
-                </a>
-              </Link>
-              <Link href="/#contact">
-                <a className="font-medium hover:text-accent transition-colors duration-200" onClick={closeMobileMenu}>
-                  Contact
-                </a>
-              </Link>
+              <a 
+                href="#features" 
+                className="font-medium hover:text-accent transition-colors duration-200 cursor-pointer"
+                onClick={(e) => {
+                  e.preventDefault();
+                  closeMobileMenu();
+                  const element = document.getElementById('features');
+                  if (element) {
+                    const headerHeight = 80;
+                    const elementPosition = element.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - headerHeight;
+                    window.scrollTo({
+                      top: offsetPosition,
+                      behavior: 'smooth'
+                    });
+                  }
+                  if (location !== "/") {
+                    window.history.pushState({}, "", "/#features");
+                  }
+                }}
+              >
+                Features
+              </a>
+              <a 
+                href="#workflow" 
+                className="font-medium hover:text-accent transition-colors duration-200 cursor-pointer"
+                onClick={(e) => {
+                  e.preventDefault();
+                  closeMobileMenu();
+                  const element = document.getElementById('workflow');
+                  if (element) {
+                    const headerHeight = 80;
+                    const elementPosition = element.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - headerHeight;
+                    window.scrollTo({
+                      top: offsetPosition,
+                      behavior: 'smooth'
+                    });
+                  }
+                  if (location !== "/") {
+                    window.history.pushState({}, "", "/#workflow");
+                  }
+                }}
+              >
+                Workflow
+              </a>
+              <a 
+                href="#applications" 
+                className="font-medium hover:text-accent transition-colors duration-200 cursor-pointer"
+                onClick={(e) => {
+                  e.preventDefault();
+                  closeMobileMenu();
+                  const element = document.getElementById('applications');
+                  if (element) {
+                    const headerHeight = 80;
+                    const elementPosition = element.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - headerHeight;
+                    window.scrollTo({
+                      top: offsetPosition,
+                      behavior: 'smooth'
+                    });
+                  }
+                  if (location !== "/") {
+                    window.history.pushState({}, "", "/#applications");
+                  }
+                }}
+              >
+                Applications
+              </a>
+              <a 
+                href="#pricing" 
+                className="font-medium hover:text-accent transition-colors duration-200 cursor-pointer"
+                onClick={(e) => {
+                  e.preventDefault();
+                  closeMobileMenu();
+                  const element = document.getElementById('pricing');
+                  if (element) {
+                    const headerHeight = 80;
+                    const elementPosition = element.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - headerHeight;
+                    window.scrollTo({
+                      top: offsetPosition,
+                      behavior: 'smooth'
+                    });
+                  }
+                  if (location !== "/") {
+                    window.history.pushState({}, "", "/#pricing");
+                  }
+                }}
+              >
+                Pricing
+              </a>
+              <a 
+                href="#contact" 
+                className="font-medium hover:text-accent transition-colors duration-200 cursor-pointer"
+                onClick={(e) => {
+                  e.preventDefault();
+                  closeMobileMenu();
+                  const element = document.getElementById('contact');
+                  if (element) {
+                    const headerHeight = 80;
+                    const elementPosition = element.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - headerHeight;
+                    window.scrollTo({
+                      top: offsetPosition,
+                      behavior: 'smooth'
+                    });
+                  }
+                  if (location !== "/") {
+                    window.history.pushState({}, "", "/#contact");
+                  }
+                }}
+              >
+                Contact
+              </a>
               <div className="flex space-x-4 pt-4">
                 {user ? (
                   <>

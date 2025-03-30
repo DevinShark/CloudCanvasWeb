@@ -20,16 +20,46 @@ const HeroSection = () => {
             Transform your geospatial data into actionable insights with our powerful data visualization and analysis tool.
           </p>
           <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
-            <Link href="/#pricing">
+            <a 
+              href="#pricing"
+              onClick={(e) => {
+                e.preventDefault();
+                const element = document.getElementById('pricing');
+                if (element) {
+                  const headerHeight = 80;
+                  const elementPosition = element.getBoundingClientRect().top;
+                  const offsetPosition = elementPosition + window.pageYOffset - headerHeight;
+                  window.scrollTo({
+                    top: offsetPosition,
+                    behavior: 'smooth'
+                  });
+                }
+              }}
+            >
               <Button size="lg" className="bg-secondary text-white hover:bg-opacity-90 transition-colors duration-200">
                 Get Started
               </Button>
-            </Link>
-            <Link href="/#demo">
+            </a>
+            <a 
+              href="#demo"
+              onClick={(e) => {
+                e.preventDefault();
+                const element = document.getElementById('demo');
+                if (element) {
+                  const headerHeight = 80;
+                  const elementPosition = element.getBoundingClientRect().top;
+                  const offsetPosition = elementPosition + window.pageYOffset - headerHeight;
+                  window.scrollTo({
+                    top: offsetPosition,
+                    behavior: 'smooth'
+                  });
+                }
+              }}
+            >
               <Button size="lg" variant="outline" className="border-2 border-white text-white hover:bg-white hover:text-primary transition-colors duration-200">
                 Request Demo
               </Button>
-            </Link>
+            </a>
           </div>
           <div className="mt-8">
             <div className="flex items-center">
