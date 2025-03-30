@@ -147,6 +147,7 @@ export const verifyEmail = async (req: Request, res: Response) => {
 
     // Mark user as verified and clear token
     await storage.setUserVerified(user.id, true);
+    await storage.updateUserVerificationToken(user.id, null);
 
     res.status(200).json({
       success: true,

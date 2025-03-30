@@ -17,7 +17,13 @@ const transporter = nodemailer.createTransport({
 export class EmailService {
   // Send email verification
   static async sendVerificationEmail(user: User, verificationToken: string): Promise<void> {
-    const verificationUrl = `https://${process.env.REPLIT_SLUG ? process.env.REPLIT_SLUG : "localhost:5000"}/verify-email/${verificationToken}`;
+    // Get the host from the replit environment or use localhost for development
+    const host = process.env.REPLIT_SLUG 
+      ? `${process.env.REPLIT_SLUG}.replit.app` 
+      : "localhost:5000";
+    
+    // Create verification URL for the client-side route
+    const verificationUrl = `https://${host}/verify-email/${verificationToken}`;
     
     const mailOptions = {
       from: process.env.EMAIL_FROM || "Cloud Canvas <no-reply@cloudcanvas.com>",
@@ -44,7 +50,12 @@ export class EmailService {
   
   // Send password reset email
   static async sendPasswordResetEmail(user: User, resetToken: string): Promise<void> {
-    const resetUrl = `https://${process.env.REPLIT_SLUG ? process.env.REPLIT_SLUG : "localhost:5000"}/reset-password/${resetToken}`;
+    // Get the host from the replit environment or use localhost for development
+    const host = process.env.REPLIT_SLUG 
+      ? `${process.env.REPLIT_SLUG}.replit.app` 
+      : "localhost:5000";
+    
+    const resetUrl = `https://${host}/reset-password/${resetToken}`;
     
     const mailOptions = {
       from: process.env.EMAIL_FROM || "Cloud Canvas <no-reply@cloudcanvas.com>",
@@ -74,7 +85,12 @@ export class EmailService {
     user: User, 
     subscription: Subscription
   ): Promise<void> {
-    const dashboardUrl = `https://${process.env.REPLIT_SLUG ? process.env.REPLIT_SLUG : "localhost:5000"}/dashboard`;
+    // Get the host from the replit environment or use localhost for development
+    const host = process.env.REPLIT_SLUG 
+      ? `${process.env.REPLIT_SLUG}.replit.app` 
+      : "localhost:5000";
+      
+    const dashboardUrl = `https://${host}/dashboard`;
     
     const mailOptions = {
       from: process.env.EMAIL_FROM || "Cloud Canvas <no-reply@cloudcanvas.com>",
@@ -114,7 +130,12 @@ export class EmailService {
     license: License, 
     subscription: Subscription
   ): Promise<void> {
-    const downloadUrl = `https://${process.env.REPLIT_SLUG ? process.env.REPLIT_SLUG : "localhost:5000"}/dashboard`;
+    // Get the host from the replit environment or use localhost for development
+    const host = process.env.REPLIT_SLUG 
+      ? `${process.env.REPLIT_SLUG}.replit.app` 
+      : "localhost:5000";
+      
+    const downloadUrl = `https://${host}/dashboard`;
     
     const mailOptions = {
       from: process.env.EMAIL_FROM || "Cloud Canvas <no-reply@cloudcanvas.com>",
