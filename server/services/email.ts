@@ -1,0 +1,220 @@
+import nodemailer from "nodemailer";
+import { User, Subscription, License } from "@shared/schema";
+import { formatPlanName, formatDate } from "@/lib/utils";
+
+// Set up email transport
+const transporter = nodemailer.createTransport({
+  host: process.env.EMAIL_HOST || "smtp.ethereal.email",
+  port: parseInt(process.env.EMAIL_PORT || "587"),
+  secure: process.env.EMAIL_SECURE === "true" ? true : false,
+  auth: {
+    user: process.env.EMAIL_USER || "ethereal.user@ethereal.email",
+    pass: process.env.EMAIL_PASSWORD || "ethereal_password",
+  },
+});
+
+// Email service class for sending various emails
+export class EmailService {
+  // Send email verification
+  static async sendVerificationEmail(user: User, verificationToken: string): Promise<void> {
+    const verificationUrl = `${process.env.FRONTEND_URL || "http://localhost:5000"}/verify-email/${verificationToken}`;
+    
+    const mailOptions = {
+      from: process.env.EMAIL_FROM || "Cloud Canvas <no-reply@cloudcanvas.com>",
+      to: user.email,
+      subject: "Verify your email for Cloud Canvas",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2B3F6C; margin-bottom: 20px;">Welcome to Cloud Canvas!</h2>
+          <p>Thank you for registering. Please verify your email address by clicking the button below:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${verificationUrl}" style="background-color: #2B3F6C; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px; font-weight: bold;">Verify Email Address</a>
+          </div>
+          <p>If the button doesn't work, you can also use this link:</p>
+          <p><a href="${verificationUrl}">${verificationUrl}</a></p>
+          <p>This link will expire in 24 hours.</p>
+          <hr style="border: 1px solid #eee; margin: 30px 0;" />
+          <p style="font-size: 12px; color: #666;">If you didn't create an account, you can safely ignore this email.</p>
+        </div>
+      `,
+    };
+    
+    await transporter.sendMail(mailOptions);
+  }
+  
+  // Send password reset email
+  static async sendPasswordResetEmail(user: User, resetToken: string): Promise<void> {
+    const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:5000"}/reset-password/${resetToken}`;
+    
+    const mailOptions = {
+      from: process.env.EMAIL_FROM || "Cloud Canvas <no-reply@cloudcanvas.com>",
+      to: user.email,
+      subject: "Reset your Cloud Canvas password",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2B3F6C; margin-bottom: 20px;">Reset Your Password</h2>
+          <p>We received a request to reset your password. Click the button below to set a new password:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetUrl}" style="background-color: #2B3F6C; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px; font-weight: bold;">Reset Password</a>
+          </div>
+          <p>If the button doesn't work, you can also use this link:</p>
+          <p><a href="${resetUrl}">${resetUrl}</a></p>
+          <p>This link will expire in 1 hour.</p>
+          <hr style="border: 1px solid #eee; margin: 30px 0;" />
+          <p style="font-size: 12px; color: #666;">If you didn't request a password reset, you can safely ignore this email.</p>
+        </div>
+      `,
+    };
+    
+    await transporter.sendMail(mailOptions);
+  }
+  
+  // Send subscription confirmation email
+  static async sendSubscriptionConfirmationEmail(
+    user: User, 
+    subscription: Subscription
+  ): Promise<void> {
+    const dashboardUrl = `${process.env.FRONTEND_URL || "http://localhost:5000"}/dashboard`;
+    
+    const mailOptions = {
+      from: process.env.EMAIL_FROM || "Cloud Canvas <no-reply@cloudcanvas.com>",
+      to: user.email,
+      subject: "Your Cloud Canvas Subscription is Active",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2B3F6C; margin-bottom: 20px;">Thank You for Your Subscription!</h2>
+          <p>Your ${formatPlanName(subscription.plan)} plan is now active. Here are your subscription details:</p>
+          
+          <div style="background-color: #f5f7fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+            <p><strong>Plan:</strong> ${formatPlanName(subscription.plan)}</p>
+            <p><strong>Billing:</strong> ${subscription.billingType === "annual" ? "Annual" : "Monthly"}</p>
+            <p><strong>Status:</strong> ${formatPlanName(subscription.status)}</p>
+            <p><strong>Next Billing Date:</strong> ${formatDate(new Date(subscription.endDate || ""))}</p>
+          </div>
+          
+          <p>Visit your dashboard to view your subscription details and download Cloud Canvas:</p>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${dashboardUrl}" style="background-color: #2B3F6C; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px; font-weight: bold;">View Dashboard</a>
+          </div>
+          
+          <hr style="border: 1px solid #eee; margin: 30px 0;" />
+          <p>If you have any questions or need assistance, please don't hesitate to contact our support team at support@cloudcanvas.com.</p>
+          <p style="font-size: 12px; color: #666;">Thank you for choosing Cloud Canvas!</p>
+        </div>
+      `,
+    };
+    
+    await transporter.sendMail(mailOptions);
+  }
+  
+  // Send license key email
+  static async sendLicenseKeyEmail(
+    user: User, 
+    license: License, 
+    subscription: Subscription
+  ): Promise<void> {
+    const downloadUrl = `${process.env.FRONTEND_URL || "http://localhost:5000"}/dashboard`;
+    
+    const mailOptions = {
+      from: process.env.EMAIL_FROM || "Cloud Canvas <no-reply@cloudcanvas.com>",
+      to: user.email,
+      subject: "Your Cloud Canvas License Key",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2B3F6C; margin-bottom: 20px;">Your Cloud Canvas License Key</h2>
+          <p>Thank you for subscribing to Cloud Canvas. Your license key is ready for use:</p>
+          
+          <div style="background-color: #f5f7fa; padding: 20px; border-radius: 5px; margin: 20px 0; font-family: monospace; word-break: break-all; font-size: 14px;">
+            ${license.licenseKey}
+          </div>
+          
+          <p><strong>Plan:</strong> ${formatPlanName(subscription.plan)}</p>
+          <p><strong>Expiration Date:</strong> ${formatDate(new Date(license.expiryDate))}</p>
+          
+          <p>Please download Cloud Canvas and enter your license key to activate the software:</p>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${downloadUrl}" style="background-color: #2B3F6C; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px; font-weight: bold;">Download Cloud Canvas</a>
+          </div>
+          
+          <p>Installation Instructions:</p>
+          <ol>
+            <li>Download and install Cloud Canvas</li>
+            <li>Launch the application</li>
+            <li>When prompted, enter your license key</li>
+            <li>Click Activate</li>
+          </ol>
+          
+          <hr style="border: 1px solid #eee; margin: 30px 0;" />
+          <p>If you have any questions or need assistance, please don't hesitate to contact our support team at support@cloudcanvas.com.</p>
+          <p style="font-size: 12px; color: #666;">Thank you for choosing Cloud Canvas!</p>
+        </div>
+      `,
+    };
+    
+    await transporter.sendMail(mailOptions);
+  }
+  
+  // Send demo request confirmation email
+  static async sendDemoRequestConfirmationEmail(
+    fullName: string,
+    email: string,
+    company: string,
+    industry: string
+  ): Promise<void> {
+    const mailOptions = {
+      from: process.env.EMAIL_FROM || "Cloud Canvas <no-reply@cloudcanvas.com>",
+      to: email,
+      subject: "Cloud Canvas Demo Request Received",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2B3F6C; margin-bottom: 20px;">Demo Request Received</h2>
+          <p>Dear ${fullName},</p>
+          <p>Thank you for your interest in Cloud Canvas. We have received your demo request with the following details:</p>
+          
+          <div style="background-color: #f5f7fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+            <p><strong>Name:</strong> ${fullName}</p>
+            <p><strong>Company:</strong> ${company}</p>
+            <p><strong>Industry:</strong> ${industry}</p>
+          </div>
+          
+          <p>A member of our team will be in touch with you shortly to schedule your personalized demo. In the meantime, feel free to explore our website for more information about Cloud Canvas.</p>
+          
+          <hr style="border: 1px solid #eee; margin: 30px 0;" />
+          <p>If you have any questions, please don't hesitate to contact us at sales@cloudcanvas.com.</p>
+          <p style="font-size: 12px; color: #666;">Thank you for your interest in Cloud Canvas!</p>
+        </div>
+      `,
+    };
+    
+    await transporter.sendMail(mailOptions);
+  }
+  
+  // Send contact form confirmation email
+  static async sendContactFormConfirmationEmail(
+    name: string,
+    email: string,
+    subject: string
+  ): Promise<void> {
+    const mailOptions = {
+      from: process.env.EMAIL_FROM || "Cloud Canvas <no-reply@cloudcanvas.com>",
+      to: email,
+      subject: "We've Received Your Message - Cloud Canvas",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2B3F6C; margin-bottom: 20px;">Message Received</h2>
+          <p>Dear ${name},</p>
+          <p>Thank you for contacting Cloud Canvas. We have received your message regarding "${subject}".</p>
+          <p>Our team will review your inquiry and get back to you as soon as possible. We typically respond within 24-48 business hours.</p>
+          
+          <hr style="border: 1px solid #eee; margin: 30px 0;" />
+          <p>If you have any urgent concerns, please contact our support team directly at support@cloudcanvas.com.</p>
+          <p style="font-size: 12px; color: #666;">Thank you for your interest in Cloud Canvas!</p>
+        </div>
+      `,
+    };
+    
+    await transporter.sendMail(mailOptions);
+  }
+}
