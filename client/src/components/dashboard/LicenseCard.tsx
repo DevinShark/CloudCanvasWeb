@@ -44,11 +44,17 @@ const LicenseCard = ({ license }: LicenseCardProps) => {
       <CardContent className="p-6">
         <div className="flex flex-col sm:flex-row justify-between">
           <div className="mb-4 sm:mb-0">
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
               <h3 className="text-lg font-semibold">License Key</h3>
               <Badge variant={license.isActive ? "default" : "outline"} className={license.isActive ? "bg-green-600" : ""}>
                 {license.isActive ? "Active" : "Inactive"}
               </Badge>
+              {/* Show Trial badge if license has no subscription ID */}
+              {(license.subscriptionId === null || license.subscriptionId === 0) && (
+                <Badge variant="secondary" className="bg-blue-600 text-white">
+                  Trial
+                </Badge>
+              )}
             </div>
             
             <div className="flex items-center gap-2 p-2 bg-gray-100 rounded mb-2 font-mono text-sm">

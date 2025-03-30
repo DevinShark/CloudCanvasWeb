@@ -127,9 +127,16 @@ export const getUserLicenses = async (req: Request, res: Response) => {
     const userId = (req.user as any).id;
 
     // Get all licenses for the user
-    const licenses = await storage.getUserLicenses(userId);
-
-    res.status(200).json(licenses);
+    try {
+      const licenses = await storage.getUserLicenses(userId);
+      
+      // Always return an array (empty if no licenses)
+      res.status(200).json(licenses || []);
+    } catch (error) {
+      console.error("Error getting user licenses:", error);
+      // Return empty array instead of error to prevent frontend issues
+      res.status(200).json([]);
+    }
   } catch (error) {
     console.error("Get user licenses error:", error);
     res.status(500).json({

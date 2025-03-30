@@ -82,5 +82,5 @@ export interface LicenseDetails {
   licenseKey: string;
   isActive: boolean;
   expiryDate: string;
-  subscriptionId: number;
+  subscriptionId: number | null;
 }

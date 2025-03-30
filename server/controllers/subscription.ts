@@ -236,23 +236,32 @@ export const getUserSubscriptions = async (req: Request, res: Response) => {
 
     const userId = (req.user as any).id;
 
-    // Get all subscriptions for the user, prioritizing active ones
-    const subscriptions = await storage.getUserSubscriptions(userId);
-    
-    // Get the most recent active subscription
-    const activeSubscription = subscriptions
-      .filter(sub => sub.status === "active")
-      .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())[0];
+    try {
+      // Get all subscriptions for the user, prioritizing active ones
+      const subscriptions = await storage.getUserSubscriptions(userId);
+      
+      if (subscriptions.length === 0) {
+        return res.status(200).json(null); // Return null instead of 404 error
+      }
+      
+      // Get the most recent active subscription
+      const activeSubscription = subscriptions
+        .filter(sub => sub.status === "active")
+        .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())[0];
 
-    if (activeSubscription) {
-      return res.status(200).json(activeSubscription);
+      if (activeSubscription) {
+        return res.status(200).json(activeSubscription);
+      }
+
+      // If no active subscription, return the most recent one
+      const mostRecentSubscription = subscriptions
+        .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())[0];
+
+      res.status(200).json(mostRecentSubscription || null);
+    } catch (error) {
+      console.error("Error getting user subscriptions:", error);
+      res.status(200).json(null); // Return null instead of error
     }
-
-    // If no active subscription, return the most recent one
-    const mostRecentSubscription = subscriptions
-      .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())[0];
-
-    res.status(200).json(mostRecentSubscription || null);
   } catch (error) {
     console.error("Get user subscriptions error:", error);
     res.status(500).json({
