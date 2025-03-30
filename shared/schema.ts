@@ -51,20 +51,25 @@ export const insertSubscriptionSchema = createInsertSchema(subscriptions).pick({
 export const licenses = pgTable("licenses", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
-  subscriptionId: integer("subscription_id").notNull().references(() => subscriptions.id),
+  subscriptionId: integer("subscription_id").references(() => subscriptions.id), // Made nullable for trial licenses
   licenseKey: text("license_key").notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   expiryDate: timestamp("expiry_date").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
-export const insertLicenseSchema = createInsertSchema(licenses).pick({
-  userId: true,
-  subscriptionId: true,
-  licenseKey: true,
-  isActive: true,
-  expiryDate: true
-});
+// Modified schema to make subscriptionId optional for trial licenses
+export const insertLicenseSchema = createInsertSchema(licenses)
+  .pick({
+    userId: true,
+    licenseKey: true,
+    isActive: true,
+    expiryDate: true
+  })
+  .extend({
+    subscriptionId: z.number().nullable().optional(), // Allow null for trial licenses
+    createdAt: z.string().optional() // Allow string ISO dates
+  });
 
 // Demo request model
 export const demoRequests = pgTable("demo_requests", {

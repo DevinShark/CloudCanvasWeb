@@ -218,25 +218,42 @@ export const reactivateLicense = async (req: Request, res: Response) => {
       });
     }
 
-    // Get the associated subscription
-    const subscription = await storage.getSubscription(license.subscriptionId);
+    // Get the associated subscription (if any - trial licenses don't have subscriptions)
+    const subscription = license.subscriptionId 
+      ? await storage.getSubscription(license.subscriptionId)
+      : null;
 
-    if (!subscription || subscription.status !== "active") {
+    // For regular licenses, verify that the subscription is active
+    // For trial licenses (null subscriptionId), skip this check
+    if (license.subscriptionId && (!subscription || subscription.status !== "active")) {
       return res.status(400).json({
         success: false,
         message: "Cannot reactivate license: associated subscription is not active"
       });
     }
 
-    // Check if the subscription has expired
-    const now = new Date();
-    const endDate = subscription.endDate ? new Date(subscription.endDate) : null;
-    
-    if (endDate && now > endDate) {
-      return res.status(400).json({
-        success: false,
-        message: "Cannot reactivate license: associated subscription has expired"
-      });
+    // For subscription-based licenses, check if the subscription has expired
+    if (subscription) {
+      const now = new Date();
+      const endDate = subscription.endDate ? new Date(subscription.endDate) : null;
+      
+      if (endDate && now > endDate) {
+        return res.status(400).json({
+          success: false,
+          message: "Cannot reactivate license: associated subscription has expired"
+        });
+      }
+    } else {
+      // For trial licenses, check if the trial has expired
+      const now = new Date();
+      const licenseEndDate = new Date(license.expiryDate);
+      
+      if (now > licenseEndDate) {
+        return res.status(400).json({
+          success: false,
+          message: "Cannot reactivate license: trial period has expired"
+        });
+      }
     }
 
     // Reactivate the license
@@ -252,6 +269,90 @@ export const reactivateLicense = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Server error during license reactivation"
+    });
+  }
+};
+
+// Generate a trial license for current user
+export const generateTrialLicense = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized"
+      });
+    }
+
+    const userId = (req.user as any).id;
+    const user = req.user as any;
+    
+    // Check if user already has any active licenses (including trial licenses)
+    const existingLicenses = await storage.getUserLicenses(userId);
+    const hasActiveLicense = existingLicenses.some(license => license.isActive);
+    
+    if (hasActiveLicense) {
+      return res.status(400).json({
+        success: false,
+        message: "You already have an active license. You cannot create a trial license."
+      });
+    }
+
+    // Check if user already used a trial before
+    const hasUsedTrial = existingLicenses.some(license => 
+      license.subscriptionId === null || license.subscriptionId === 0
+    );
+    
+    if (hasUsedTrial) {
+      return res.status(400).json({
+        success: false,
+        message: "You have already used your trial license. Only one trial is allowed per account."
+      });
+    }
+    
+    // Create a trial subscription (special case where subscriptionId is null)
+    const trialStartDate = new Date();
+    const trialEndDate = new Date();
+    trialEndDate.setDate(trialEndDate.getDate() + 30); // 30-day trial
+    
+    // Create trial license directly without a subscription
+    const licenseKey = LicenseGateService.generateLicenseKey();
+    const trialLicense = await storage.createLicense({
+      userId,
+      licenseKey,
+      isActive: true,
+      expiryDate: trialEndDate, // Date object works here due to our updated schema
+      subscriptionId: null, // Null subscription indicates this is a trial license
+      createdAt: trialStartDate.toISOString() // This is optional so string is fine
+    });
+    
+    // Send trial license email with a mock subscription object for email template
+    await EmailService.sendLicenseKeyEmail(
+      user, 
+      trialLicense, 
+      {
+        id: 0,
+        paypalSubscriptionId: 'TRIAL',
+        userId,
+        plan: 'trial',
+        status: 'active',
+        billingType: 'one-time',
+        startDate: trialStartDate,
+        endDate: trialEndDate,
+        createdAt: trialStartDate
+      } as any
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Trial license generated successfully",
+      licenseKey,
+      license: trialLicense
+    });
+  } catch (error) {
+    console.error("Generate trial license error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error during trial license generation"
     });
   }
 };

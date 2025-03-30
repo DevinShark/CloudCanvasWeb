@@ -1,18 +1,21 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Download, FileDown } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { getUserSubscription } from "@/lib/paypal";
-import { getUserLicenses } from "@/lib/licenseGate";
+import { getUserLicenses, generateTrialLicense } from "@/lib/licenseGate";
 import { formatDate } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 import LicenseCard from "@/components/dashboard/LicenseCard";
 import ProfileSettings from "@/components/dashboard/ProfileSettings";
 
 const UserDashboard = () => {
   const [activeTab, setActiveTab] = useState("licenses");
+  const [isGeneratingTrial, setIsGeneratingTrial] = useState(false);
+  const queryClient = useQueryClient();
   
   const { data: user, isLoading: isLoadingUser } = useQuery({
     queryKey: ["/api/auth/me"],
@@ -31,7 +34,26 @@ const UserDashboard = () => {
     enabled: !!user,
   });
   
-  const isLoading = isLoadingUser || isLoadingSubscription || isLoadingLicenses;
+  // Handle trial license generation
+  const handleGenerateTrial = async () => {
+    try {
+      setIsGeneratingTrial(true);
+      await generateTrialLicense();
+      // Invalidate licenses query to refresh the data
+      await queryClient.invalidateQueries({ queryKey: ["/api/licenses/user"] });
+    } catch (error) {
+      console.error("Failed to generate trial license:", error);
+      toast({
+        title: "Error",
+        description: "Failed to generate trial license. Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingTrial(false);
+    }
+  };
+  
+  const isLoading = isLoadingUser || isLoadingSubscription || isLoadingLicenses || isGeneratingTrial;
   
   if (isLoading) {
     return (
@@ -91,39 +113,74 @@ const UserDashboard = () => {
             </CardContent>
           </Card>
           
-          <Card>
-            <CardHeader>
-              <CardTitle>Downloads</CardTitle>
-              <CardDescription>
-                Download the latest version of Cloud Canvas
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4">
-                <div className="flex justify-between items-center p-4 border rounded-lg">
-                  <div>
-                    <h4 className="font-medium">Cloud Canvas v3.5.2</h4>
-                    <p className="text-sm text-gray-500">Released on {formatDate(new Date("2025-03-15"))}</p>
+          {/* Only show downloads section if the user has at least one active license */}
+          {licenses && licenses.length > 0 && licenses.some(license => license.isActive) ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Downloads</CardTitle>
+                <CardDescription>
+                  Download the latest version of Cloud Canvas
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4">
+                  <div className="flex justify-between items-center p-4 border rounded-lg">
+                    <div>
+                      <h4 className="font-medium">Cloud Canvas v3.5.2</h4>
+                      <p className="text-sm text-gray-500">Released on {formatDate(new Date("2025-03-15"))}</p>
+                    </div>
+                    <Button className="gap-2">
+                      <Download className="h-4 w-4" />
+                      Download
+                    </Button>
                   </div>
-                  <Button className="gap-2">
-                    <Download className="h-4 w-4" />
-                    Download
-                  </Button>
-                </div>
-                
-                <div className="flex justify-between items-center p-4 border rounded-lg">
-                  <div>
-                    <h4 className="font-medium">LAS Format Plugin</h4>
-                    <p className="text-sm text-gray-500">Additional format support</p>
+                  
+                  <div className="flex justify-between items-center p-4 border rounded-lg">
+                    <div>
+                      <h4 className="font-medium">LAS Format Plugin</h4>
+                      <p className="text-sm text-gray-500">Additional format support</p>
+                    </div>
+                    <Button variant="outline" className="gap-2">
+                      <Download className="h-4 w-4" />
+                      Download
+                    </Button>
                   </div>
-                  <Button variant="outline" className="gap-2">
-                    <Download className="h-4 w-4" />
-                    Download
-                  </Button>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>Downloads</CardTitle>
+                <CardDescription>
+                  Access Cloud Canvas downloads with a license
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-6">
+                  <Download className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-1">No active license found</h3>
+                  <p className="text-gray-500 mb-6">
+                    Subscribe to a plan to access Cloud Canvas downloads.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                    <Button
+                      onClick={() => window.location.href = "/#pricing"}
+                    >
+                      View Pricing Plans
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={handleGenerateTrial}
+                      disabled={isGeneratingTrial}
+                    >
+                      {isGeneratingTrial ? 'Generating Trial...' : 'Start Free Trial'}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
         
         <TabsContent value="subscription" className="space-y-6">
