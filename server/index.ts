@@ -10,7 +10,23 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Store the application URL in process.env for use in emails
+const appProtocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+const appHost = process.env.REPLIT_SLUG 
+  ? `${process.env.REPLIT_SLUG}.replit.app`
+  : 'localhost:5000';
+process.env.APP_URL = `${appProtocol}://${appHost}`;
+
+// Log incoming requests and responses
 app.use((req, res, next) => {
+  // Store the first detected host if not already set
+  if (!process.env.APP_HOST && req.headers.host) {
+    process.env.APP_HOST = req.headers.host;
+    process.env.APP_PROTOCOL = req.protocol;
+    process.env.APP_URL = `${req.protocol}://${req.headers.host}`;
+    log(`Detected application URL: ${process.env.APP_URL}`);
+  }
+  
   const start = Date.now();
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;

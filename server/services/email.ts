@@ -15,16 +15,16 @@ const transporter = nodemailer.createTransport({
 
 // Helper function to generate application URLs that work in both development and production
 function getAppUrl(path: string = ''): string {
-  // Determine if we're in Replit environment (production) or localhost (development)
-  const isReplitEnv = !!process.env.REPLIT_SLUG;
-  // Use current Replit slug for the domain if available, or hardcoded dev domain
-  const host = isReplitEnv
-    ? process.env.REPLIT_SLUG + ".replit.app" 
-    : "localhost:5000";
+  // Get the application URL from environment variable set in server/index.ts
+  // This is more reliable as it uses the actual request host when available
+  const baseUrl = process.env.APP_URL || "http://localhost:5000";
   
-  // Create URL with appropriate protocol
-  const protocol = isReplitEnv ? "https" : "http";
-  return `${protocol}://${host}${path.startsWith('/') ? path : `/${path}`}`;
+  // Clean up the baseUrl and path for proper joining
+  const cleanBaseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  
+  console.log(`Generated URL: ${cleanBaseUrl}${cleanPath}`);
+  return `${cleanBaseUrl}${cleanPath}`;
 }
 
 // Email service class for sending various emails
