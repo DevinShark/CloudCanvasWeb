@@ -8,7 +8,6 @@ import FeaturesSection from "@/components/home/FeaturesSection";
 import ApplicationsSection from "@/components/home/ApplicationsSection";
 import DemoSection from "@/components/home/DemoSection";
 import PricingSection from "@/components/home/PricingSection";
-import TestimonialsSection from "@/components/home/TestimonialsSection";
 import CTASection from "@/components/home/CTASection";
 import ContactSection from "@/components/home/ContactSection";
 
@@ -58,7 +57,6 @@ const HomePage = () => {
         <ApplicationsSection />
         <DemoSection />
         <PricingSection />
-        <TestimonialsSection />
         <CTASection />
         <ContactSection />
       </main>

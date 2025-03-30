@@ -1,15 +1,13 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Star } from "lucide-react";
+import splashImage from "@assets/CC_Splash.jpeg";
 
 const HeroSection = () => {
   return (
     <section className="relative">
       <div className="absolute inset-0 overflow-hidden">
-        <div 
-          className="w-full h-full bg-[url('https://images.unsplash.com/photo-1508098682722-e99c643e7485?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80')] bg-cover bg-center"
-          aria-hidden="true"
-        ></div>
+        <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url(${splashImage})` }} aria-hidden="true"></div>
         <div className="absolute inset-0 gradient-bg"></div>
       </div>
       
@@ -33,26 +31,11 @@ const HeroSection = () => {
               </Button>
             </Link>
           </div>
-          <div className="mt-8 flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-8">
+          <div className="mt-8">
             <div className="flex items-center">
-              <div className="h-10 w-10 rounded-full bg-gray-300 mr-2">
-                <img 
-                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80" 
-                  alt="User" 
-                  className="h-10 w-10 rounded-full object-cover"
-                />
+              <div className="inline-flex px-3 py-1 rounded-full bg-secondary bg-opacity-30">
+                <span className="text-white text-sm font-medium">Professional 3D Terrain Editor</span>
               </div>
-              <div className="opacity-80 text-sm">
-                "Cloud Canvas transformed our entire workflow." - Robert M., Civil Engineer
-              </div>
-            </div>
-            <div className="flex items-center">
-              <div className="flex">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-current text-yellow-400" />
-                ))}
-              </div>
-              <span className="ml-2 opacity-80 text-sm">5.0 (48 reviews)</span>
             </div>
           </div>
         </div>

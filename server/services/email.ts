@@ -17,7 +17,7 @@ const transporter = nodemailer.createTransport({
 export class EmailService {
   // Send email verification
   static async sendVerificationEmail(user: User, verificationToken: string): Promise<void> {
-    const verificationUrl = `${process.env.FRONTEND_URL || "http://localhost:5000"}/verify-email/${verificationToken}`;
+    const verificationUrl = `https://${process.env.REPLIT_SLUG ? process.env.REPLIT_SLUG : "localhost:5000"}/verify-email/${verificationToken}`;
     
     const mailOptions = {
       from: process.env.EMAIL_FROM || "Cloud Canvas <no-reply@cloudcanvas.com>",
@@ -44,7 +44,7 @@ export class EmailService {
   
   // Send password reset email
   static async sendPasswordResetEmail(user: User, resetToken: string): Promise<void> {
-    const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:5000"}/reset-password/${resetToken}`;
+    const resetUrl = `https://${process.env.REPLIT_SLUG ? process.env.REPLIT_SLUG : "localhost:5000"}/reset-password/${resetToken}`;
     
     const mailOptions = {
       from: process.env.EMAIL_FROM || "Cloud Canvas <no-reply@cloudcanvas.com>",
@@ -74,7 +74,7 @@ export class EmailService {
     user: User, 
     subscription: Subscription
   ): Promise<void> {
-    const dashboardUrl = `${process.env.FRONTEND_URL || "http://localhost:5000"}/dashboard`;
+    const dashboardUrl = `https://${process.env.REPLIT_SLUG ? process.env.REPLIT_SLUG : "localhost:5000"}/dashboard`;
     
     const mailOptions = {
       from: process.env.EMAIL_FROM || "Cloud Canvas <no-reply@cloudcanvas.com>",
@@ -114,7 +114,7 @@ export class EmailService {
     license: License, 
     subscription: Subscription
   ): Promise<void> {
-    const downloadUrl = `${process.env.FRONTEND_URL || "http://localhost:5000"}/dashboard`;
+    const downloadUrl = `https://${process.env.REPLIT_SLUG ? process.env.REPLIT_SLUG : "localhost:5000"}/dashboard`;
     
     const mailOptions = {
       from: process.env.EMAIL_FROM || "Cloud Canvas <no-reply@cloudcanvas.com>",
