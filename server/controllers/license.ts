@@ -283,6 +283,11 @@ export const reactivateLicense = async (req: Request, res: Response) => {
 // Generate a trial license for current user
 export const generateTrialLicense = async (req: Request, res: Response) => {
   try {
+    console.log("Trial license generation - Starting process");
+    console.log("API URL check:", process.env.LICENSEGATE_API_URL || "https://api.licensegate.io");
+    console.log("API KEY check:", process.env.LICENSEGATE_API_KEY ? "Present (not shown for security)" : "Missing!");
+    console.log("USER ID check:", process.env.LICENSEGATE_USER_ID ? "Present (not shown for security)" : "Missing!");
+    
     if (!req.user) {
       return res.status(401).json({
         success: false,
@@ -293,11 +298,16 @@ export const generateTrialLicense = async (req: Request, res: Response) => {
     const userId = (req.user as any).id;
     const user = req.user as any;
     
+    console.log("Trial license request for user:", userId, user.email);
+    
     // Check if user already has any active licenses (including trial licenses)
     const existingLicenses = await storage.getUserLicenses(userId);
+    console.log("User existing licenses:", existingLicenses.length, existingLicenses.map(l => ({ id: l.id, isActive: l.isActive, type: l.subscriptionId ? 'paid' : 'trial' })));
+    
     const hasActiveLicense = existingLicenses.some(license => license.isActive);
     
     if (hasActiveLicense) {
+      console.log("User already has active license - rejecting trial request");
       return res.status(400).json({
         success: false,
         message: "You already have an active license. You cannot create a trial license."
@@ -310,16 +320,22 @@ export const generateTrialLicense = async (req: Request, res: Response) => {
     );
     
     if (hasUsedTrial) {
+      console.log("User already used trial - rejecting trial request");
       return res.status(400).json({
         success: false,
         message: "You have already used your trial license. Only one trial is allowed per account."
       });
     }
     
+    console.log("User eligible for trial - proceeding with license creation");
+    
     try {
       // Create a trial license with the integrated LicenseGate service
-      // This will throw an error if the API fails
-      const trialLicense = await LicenseGateService.createTrialLicense(user, 30); // 30-day trial
+      // Reduced to 7-day trial to match CloudCanvas requirements
+      console.log("Calling LicenseGateService.createTrialLicense");
+      const trialLicense = await LicenseGateService.createTrialLicense(user, 7); // 7-day trial
+      
+      console.log("Trial license created successfully:", trialLicense);
       
       // Only send email if license creation was successful
       // Create mock subscription object for email template
@@ -327,6 +343,7 @@ export const generateTrialLicense = async (req: Request, res: Response) => {
       const trialEndDate = new Date(trialLicense.expiryDate);
       
       // Send trial license email
+      console.log("Sending trial license email to user");
       await EmailService.sendLicenseKeyEmail(
         user, 
         trialLicense, 
@@ -343,6 +360,7 @@ export const generateTrialLicense = async (req: Request, res: Response) => {
         } as any
       );
 
+      console.log("Trial license process complete - returning success response");
       return res.status(201).json({
         success: true,
         message: "Trial license generated successfully",
@@ -351,6 +369,13 @@ export const generateTrialLicense = async (req: Request, res: Response) => {
       });
     } catch (err: any) {
       console.error("Error creating trial license:", err);
+      if (err.response) {
+        console.error("LicenseGate API error response:", {
+          status: err.response.status,
+          data: err.response.data,
+          headers: err.response.headers
+        });
+      }
       return res.status(500).json({
         success: false,
         message: err.message || "Failed to generate trial license. Please try again later."

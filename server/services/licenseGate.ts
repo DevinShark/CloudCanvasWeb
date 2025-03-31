@@ -7,7 +7,7 @@ import { getSubscriptionEndDate } from "@/lib/utils";
 // LicenseGate API credentials
 const API_KEY = process.env.LICENSEGATE_API_KEY;
 const USER_ID = process.env.LICENSEGATE_USER_ID;
-const API_URL = process.env.LICENSEGATE_API_URL || "http://api.licensegate.com"; // Base API URL for LicenseGate (configurable)
+const API_URL = process.env.LICENSEGATE_API_URL || "https://api.licensegate.io"; // Base API URL for LicenseGate (configurable)
 
 export class LicenseGateService {
   // Generate a unique license key locally (backup if API fails)
@@ -43,40 +43,54 @@ export class LicenseGateService {
         .filter(Boolean)
         .join(" ") || user.email;
       
-      // Format plan details for the Notes field
-      const planInfo = `Plan - ${subscription.plan.charAt(0).toUpperCase() + subscription.plan.slice(1)}
-Billing - ${subscription.billingType.charAt(0).toUpperCase() + subscription.billingType.slice(1)}
-PayPal ID - ${subscription.paypalSubscriptionId}
-Email - ${user.email}`;
-      
       // Set license expiration date
       const expiryDate = subscription.endDate || 
         getSubscriptionEndDate(new Date(subscription.startDate), subscription.billingType);
       
+      // Generate a unique license key with plan-specific prefix
+      const uniqueId = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit number
+      const planPrefix = subscription.plan.toUpperCase().substring(0, 3); // First 3 letters of plan
+      const billingPrefix = subscription.billingType === 'monthly' ? 'M' : 'Y';
+      const licenseKey = `CC-${planPrefix}-${billingPrefix}-${uniqueId}`;
+      
       console.log("Creating license with LicenseGate API:", {
         fullName,
-        planInfo,
+        licenseKey,
+        plan: subscription.plan,
+        billingType: subscription.billingType,
         expiryDate: expiryDate.toISOString()
       });
       
-      // Generate a fresh license key
-      const generatedLicenseKey = this.generateLicenseKey();
+      // Format notes field for CloudCanvas requirements
+      const notes = `CloudCanvas ${subscription.plan.charAt(0).toUpperCase() + subscription.plan.slice(1)} - ${
+        subscription.billingType === 'monthly' ? 'Monthly' : 'Yearly'
+      } subscription\nEmail: ${user.email}\nPayPal ID: ${subscription.paypalSubscriptionId}`;
       
-      // Create license via LicenseGate API
+      // Determine license scope based on subscription plan
+      let licenseScope = "standard";
+      let features = ["basic", "standard"];
+      
+      if (subscription.plan === "professional") {
+        licenseScope = "professional";
+        features = ["basic", "standard", "professional"];
+      } else if (subscription.plan === "enterprise") {
+        licenseScope = "enterprise";
+        features = ["basic", "standard", "professional", "enterprise"];
+      }
+      
+      // Create license via LicenseGate API using CloudCanvas format
       const response = await axios.post(
         `${API_URL}/admin/licenses`, 
         {
-          active: true,
           name: fullName,
-          notes: planInfo,
-          ipLimit: null,
-          licenseScope: null,
+          licenseKey: licenseKey,
+          notes: notes,
           expirationDate: expiryDate.toISOString(),
-          validationPoints: null,
-          validationLimit: null,
-          replenishAmount: null,
-          replenishInterval: "TEN_SECONDS",
-          licenseKey: generatedLicenseKey // Use pre-generated key
+          licenseScope: licenseScope,
+          active: true,
+          restrictions: {
+            features: features
+          }
         },
         {
           headers: {
@@ -91,16 +105,19 @@ Email - ${user.email}`;
       console.log("LicenseGate API response:", response.data);
       
       if (response.status === 201 || response.status === 200) {
-        return response.data.licenseKey || generatedLicenseKey; // Using the correct field name for license key
+        // If successful, use the key from the response if available
+        const returnedKey = response.data && response.data.licenseKey ? response.data.licenseKey : licenseKey;
+        console.log("License successfully created with key:", returnedKey);
+        return returnedKey;
       } else {
         throw new Error(`Failed to create license: ${response.statusText}`);
       }
     } catch (error) {
       console.error("Error creating license on LicenseGate:", error);
       // In production, we would not want to fallback to local generation
-      // Since we're in development, we'll allow a fallback for testing purposes
-      const fallbackKey = this.generateLicenseKey();
-      console.log("Using fallback license key:", fallbackKey);
+      // Since we're in development, we'll allow a fallback for testing purposes - but log clearly
+      const fallbackKey = `DEV-MODE-FALLBACK-${Math.floor(10000 + Math.random() * 90000)}`;
+      console.log("USING FALLBACK LICENSE KEY (DEVELOPMENT ONLY):", fallbackKey);
       return fallbackKey;
     }
   }
@@ -127,45 +144,42 @@ Email - ${user.email}`;
   }
   
   // Create a trial license via LicenseGate API
-  static async createTrialLicense(user: User, trialDays: number = 30): Promise<License> {
+  static async createTrialLicense(user: User, trialDays: number = 7): Promise<License> {
     try {
       // Format the user's full name
       const fullName = [user.firstName, user.lastName]
         .filter(Boolean)
         .join(" ") || user.email;
       
-      // Format plan details for the Notes field
-      const planInfo = `Trial license (${trialDays} days) for ${user.email}`;
-      
       // Set trial expiration date
       const startDate = new Date();
       const expiryDate = new Date(startDate);
       expiryDate.setDate(expiryDate.getDate() + trialDays);
       
+      // Generate a unique license key for trial with CC-TRIAL prefix
+      const uniqueId = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit number
+      const trialLicenseKey = `CC-TRIAL-${uniqueId}`;
+      
       console.log("Creating trial license with LicenseGate API:", {
         fullName,
-        planInfo,
+        licenseKey: trialLicenseKey,
         expiryDate: expiryDate.toISOString()
       });
       
-      // Generate a fresh license key
-      const generatedLicenseKey = this.generateLicenseKey();
-      
-      // Create trial license via LicenseGate API using the format from documentation
+      // Format according to CloudCanvas requirements
       const response = await axios.post(
         `${API_URL}/admin/licenses`, 
         {
-          active: true,
-          name: fullName,
-          notes: planInfo,
-          ipLimit: null,
-          licenseScope: null,
+          name: "CloudCanvas Trial",
+          licenseKey: trialLicenseKey,
+          notes: `${trialDays}-day trial license for CloudCanvas for ${user.email}`,
           expirationDate: expiryDate.toISOString(),
-          validationPoints: null,
-          validationLimit: null,
-          replenishAmount: null,
-          replenishInterval: "TEN_SECONDS",
-          licenseKey: generatedLicenseKey // Use pre-generated key
+          licenseScope: "trial",
+          active: true,
+          restrictions: {
+            maxDays: trialDays,
+            features: ["basic", "trial"]
+          }
         },
         {
           headers: {
@@ -179,11 +193,14 @@ Email - ${user.email}`;
       
       console.log("LicenseGate API trial response:", response.data);
       
-      let licenseKey = "";
+      let licenseKey = trialLicenseKey;
       
       if (response.status === 201 || response.status === 200) {
-        // If successful, use the key from the response (if available) or use our generated key
-        licenseKey = response.data.licenseKey || generatedLicenseKey;
+        // If successful, use the key from the response if available
+        if (response.data && response.data.licenseKey) {
+          licenseKey = response.data.licenseKey;
+        }
+        console.log("License successfully created with key:", licenseKey);
       } else {
         throw new Error(`Failed to create trial license: ${response.statusText}`);
       }
