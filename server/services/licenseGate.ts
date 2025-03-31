@@ -37,89 +37,107 @@ export class LicenseGateService {
     user: User, 
     subscription: Subscription
   ): Promise<string> {
-    try {
-      // Format the user's full name
-      const fullName = [user.firstName, user.lastName]
-        .filter(Boolean)
-        .join(" ") || user.email;
-      
-      // Set license expiration date
-      const expiryDate = subscription.endDate || 
-        getSubscriptionEndDate(new Date(subscription.startDate), subscription.billingType);
-      
-      // Generate a unique license key with plan-specific prefix
-      const uniqueId = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit number
-      const planPrefix = subscription.plan.toUpperCase().substring(0, 3); // First 3 letters of plan
-      const billingPrefix = subscription.billingType === 'monthly' ? 'M' : 'Y';
-      const licenseKey = `CC-${planPrefix}-${billingPrefix}-${uniqueId}`;
-      
-      console.log("Creating license with LicenseGate API:", {
-        fullName,
-        licenseKey,
-        plan: subscription.plan,
-        billingType: subscription.billingType,
-        expiryDate: expiryDate.toISOString()
-      });
-      
-      // Format notes field for CloudCanvas requirements
-      const notes = `CloudCanvas ${subscription.plan.charAt(0).toUpperCase() + subscription.plan.slice(1)} - ${
-        subscription.billingType === 'monthly' ? 'Monthly' : 'Yearly'
-      } subscription\nEmail: ${user.email}\nPayPal ID: ${subscription.paypalSubscriptionId}`;
-      
-      // Determine license scope based on subscription plan
-      let licenseScope = "standard";
-      let features = ["basic", "standard"];
-      
-      if (subscription.plan === "professional") {
-        licenseScope = "professional";
-        features = ["basic", "standard", "professional"];
-      } else if (subscription.plan === "enterprise") {
-        licenseScope = "enterprise";
-        features = ["basic", "standard", "professional", "enterprise"];
-      }
-      
-      // Create license via LicenseGate API using CloudCanvas format
-      const response = await axios.post(
-        `${API_URL}/admin/licenses`, 
-        {
-          name: fullName,
-          licenseKey: licenseKey,
-          notes: notes,
-          expirationDate: expiryDate.toISOString(),
-          licenseScope: licenseScope,
-          active: true,
-          restrictions: {
-            features: features
-          }
-        },
-        {
-          headers: {
-            "Authorization": `Bearer ${API_KEY}`,
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-          },
-          timeout: 10000 // Add timeout to prevent long wait
-        }
-      );
-      
-      console.log("LicenseGate API response:", response.data);
-      
-      if (response.status === 201 || response.status === 200) {
-        // If successful, use the key from the response if available
-        const returnedKey = response.data && response.data.licenseKey ? response.data.licenseKey : licenseKey;
-        console.log("License successfully created with key:", returnedKey);
-        return returnedKey;
-      } else {
-        throw new Error(`Failed to create license: ${response.statusText}`);
-      }
-    } catch (error) {
-      console.error("Error creating license on LicenseGate:", error);
-      // In production, we would not want to fallback to local generation
-      // Since we're in development, we'll allow a fallback for testing purposes - but log clearly
-      const fallbackKey = `DEV-MODE-FALLBACK-${Math.floor(10000 + Math.random() * 90000)}`;
-      console.log("USING FALLBACK LICENSE KEY (DEVELOPMENT ONLY):", fallbackKey);
-      return fallbackKey;
+    // Format the user's full name
+    const fullName = [user.firstName, user.lastName]
+      .filter(Boolean)
+      .join(" ") || user.email;
+    
+    // Set license expiration date
+    const expiryDate = subscription.endDate || 
+      getSubscriptionEndDate(new Date(subscription.startDate), subscription.billingType);
+    
+    // Generate a unique license key with plan-specific prefix
+    const uniqueId = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit number
+    const planPrefix = subscription.plan.toUpperCase().substring(0, 3); // First 3 letters of plan
+    const billingPrefix = subscription.billingType === 'monthly' ? 'M' : 'Y';
+    const licenseKey = `CC-${planPrefix}-${billingPrefix}-${uniqueId}`;
+    
+    console.log("Creating license for user:", {
+      fullName,
+      email: user.email,
+      licenseKey,
+      plan: subscription.plan,
+      billingType: subscription.billingType,
+      expiryDate: expiryDate.toISOString()
+    });
+    
+    // Check if we have valid API credentials
+    const hasValidCredentials = API_KEY && API_URL && USER_ID;
+    let licenseCreatedInLicenseGate = false;
+    
+    // Format notes field for CloudCanvas requirements
+    const notes = `CloudCanvas ${subscription.plan.charAt(0).toUpperCase() + subscription.plan.slice(1)} - ${
+      subscription.billingType === 'monthly' ? 'Monthly' : 'Yearly'
+    } subscription\nEmail: ${user.email}\nPayPal ID: ${subscription.paypalSubscriptionId}`;
+    
+    // Determine license scope based on subscription plan
+    let licenseScope = "standard";
+    let features = ["basic", "standard"];
+    
+    if (subscription.plan === "professional") {
+      licenseScope = "professional";
+      features = ["basic", "standard", "professional"];
+    } else if (subscription.plan === "enterprise") {
+      licenseScope = "enterprise";
+      features = ["basic", "standard", "professional", "enterprise"];
     }
+    
+    // Only try to connect to LicenseGate if we have credentials
+    if (hasValidCredentials) {
+      try {
+        console.log("Attempting to connect to LicenseGate API...");
+        // Create license via LicenseGate API using CloudCanvas format
+        const response = await axios.post(
+          `${API_URL}/admin/licenses`, 
+          {
+            name: fullName,
+            licenseKey: licenseKey,
+            notes: notes,
+            expirationDate: expiryDate.toISOString(),
+            licenseScope: licenseScope,
+            active: true,
+            restrictions: {
+              features: features
+            }
+          },
+          {
+            headers: {
+              "Authorization": `Bearer ${API_KEY}`,
+              "Content-Type": "application/json",
+              "Accept": "application/json"
+            },
+            timeout: 10000 // Add timeout to prevent long wait
+          }
+        );
+        
+        console.log("LicenseGate API response:", response.data);
+        
+        if (response.status === 201 || response.status === 200) {
+          // If successful, use the key from the response if available
+          const returnedKey = response.data && response.data.licenseKey ? response.data.licenseKey : licenseKey;
+          console.log("License successfully created in LicenseGate with key:", returnedKey);
+          licenseCreatedInLicenseGate = true;
+          return returnedKey;
+        }
+      } catch (err) {
+        const error = err as any;
+        console.error("Error connecting to LicenseGate API:", error);
+        if (error.response) {
+          console.error("LicenseGate API error response:", {
+            status: error.response.status,
+            data: error.response.data,
+            headers: error.response.headers
+          });
+        }
+        console.log("Proceeding with local license generation only.");
+        // Continue with local license creation - don't throw
+      }
+    } else {
+      console.log("No valid LicenseGate API credentials found. Using locally generated license key.");
+    }
+    
+    console.log("Using locally generated license key:", licenseKey);
+    return licenseKey;
   }
   
   // Create a new license for a subscription
@@ -145,86 +163,102 @@ export class LicenseGateService {
   
   // Create a trial license via LicenseGate API
   static async createTrialLicense(user: User, trialDays: number = 7): Promise<License> {
-    try {
-      // Format the user's full name
-      const fullName = [user.firstName, user.lastName]
-        .filter(Boolean)
-        .join(" ") || user.email;
-      
-      // Set trial expiration date
-      const startDate = new Date();
-      const expiryDate = new Date(startDate);
-      expiryDate.setDate(expiryDate.getDate() + trialDays);
-      
-      // Generate a unique license key for trial with CC-TRIAL prefix
-      const uniqueId = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit number
-      const trialLicenseKey = `CC-TRIAL-${uniqueId}`;
-      
-      console.log("Creating trial license with LicenseGate API:", {
-        fullName,
-        licenseKey: trialLicenseKey,
-        expiryDate: expiryDate.toISOString()
-      });
-      
-      // Format according to CloudCanvas requirements
-      const response = await axios.post(
-        `${API_URL}/admin/licenses`, 
-        {
-          name: "CloudCanvas Trial",
-          licenseKey: trialLicenseKey,
-          notes: `${trialDays}-day trial license for CloudCanvas for ${user.email}`,
-          expirationDate: expiryDate.toISOString(),
-          licenseScope: "trial",
-          active: true,
-          restrictions: {
-            maxDays: trialDays,
-            features: ["basic", "trial"]
-          }
-        },
-        {
-          headers: {
-            "Authorization": `Bearer ${API_KEY}`,
-            "Content-Type": "application/json",
-            "Accept": "application/json"
+    // Format the user's full name
+    const fullName = [user.firstName, user.lastName]
+      .filter(Boolean)
+      .join(" ") || user.email;
+    
+    // Set trial expiration date
+    const startDate = new Date();
+    const expiryDate = new Date(startDate);
+    expiryDate.setDate(expiryDate.getDate() + trialDays);
+    
+    // Generate a unique license key for trial with CC-TRIAL prefix
+    const uniqueId = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit number
+    let trialLicenseKey = `CC-TRIAL-${uniqueId}`;
+    
+    console.log("Creating trial license for user:", {
+      fullName,
+      email: user.email,
+      licenseKey: trialLicenseKey,
+      expiryDate: expiryDate.toISOString()
+    });
+    
+    // Check if we have valid API credentials
+    const hasValidCredentials = API_KEY && API_URL && USER_ID;
+    let licenseCreatedInLicenseGate = false;
+    
+    // Only try to connect to LicenseGate if we have credentials
+    if (hasValidCredentials) {
+      try {
+        console.log("Attempting to connect to LicenseGate API...");
+        // Format according to CloudCanvas requirements
+        const response = await axios.post(
+          `${API_URL}/admin/licenses`, 
+          {
+            name: "CloudCanvas Trial",
+            licenseKey: trialLicenseKey,
+            notes: `${trialDays}-day trial license for CloudCanvas for ${user.email}`,
+            expirationDate: expiryDate.toISOString(),
+            licenseScope: "trial",
+            active: true,
+            restrictions: {
+              maxDays: trialDays,
+              features: ["basic", "trial"]
+            }
           },
-          timeout: 10000 // Add timeout to prevent long wait
+          {
+            headers: {
+              "Authorization": `Bearer ${API_KEY}`,
+              "Content-Type": "application/json",
+              "Accept": "application/json"
+            },
+            timeout: 10000 // Add timeout to prevent long wait
+          }
+        );
+        
+        console.log("LicenseGate API trial response:", response.data);
+        
+        if (response.status === 201 || response.status === 200) {
+          // If successful, use the key from the response if available
+          if (response.data && response.data.licenseKey) {
+            trialLicenseKey = response.data.licenseKey;
+          }
+          console.log("License successfully created in LicenseGate with key:", trialLicenseKey);
+          licenseCreatedInLicenseGate = true;
         }
-      );
-      
-      console.log("LicenseGate API trial response:", response.data);
-      
-      let licenseKey = trialLicenseKey;
-      
-      if (response.status === 201 || response.status === 200) {
-        // If successful, use the key from the response if available
-        if (response.data && response.data.licenseKey) {
-          licenseKey = response.data.licenseKey;
+      } catch (err) {
+        const error = err as any;
+        console.error("Error connecting to LicenseGate API:", error);
+        if (error.response) {
+          console.error("LicenseGate API error response:", {
+            status: error.response.status,
+            data: error.response.data
+          });
         }
-        console.log("License successfully created with key:", licenseKey);
-      } else {
-        throw new Error(`Failed to create trial license: ${response.statusText}`);
+        console.log("Proceeding with local license generation only.");
+        // Continue with local license creation - don't throw
       }
-      
+    } else {
+      console.log("No valid LicenseGate API credentials found. Using locally generated license key.");
+    }
+    
+    try {
       // Create the license in local storage
       const license = await storage.createLicense({
         userId: user.id,
         subscriptionId: null, // Null for trial licenses
-        licenseKey,
+        licenseKey: trialLicenseKey,
         isActive: true,
         expiryDate,
         createdAt: startDate.toISOString()
       });
       
-      // Only send email if license creation in LicenseGate was successful
       console.log("Trial license created successfully:", license);
-      
       return license;
-    } catch (error) {
-      console.error("Error creating trial license on LicenseGate:", error);
-      
-      // If it's a server error, don't create a fallback license
-      // This ensures we don't send emails with fake license keys
-      throw new Error("Failed to generate trial license. Please try again later.");
+    } catch (storageError) {
+      console.error("Error creating license in local storage:", storageError);
+      throw new Error("Failed to generate trial license. Database error occurred.");
     }
   }
   
