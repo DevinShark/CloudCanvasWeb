@@ -1050,16 +1050,18 @@ const FeatureDetailPage = () => {
           
           {feature ? (
             <div className="max-w-4xl mx-auto">
-              <div className="flex items-center mb-8">
-                <div className="mr-4">
+              <div className="bg-slate-800 text-white px-8 py-10 rounded-lg mb-10">
+                <div className="inline-block bg-blue-500/20 text-blue-400 rounded-full px-3 py-1 text-sm font-medium mb-4">
+                  Feature
+                </div>
+                <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">{feature.title}</h1>
+                <p className="text-xl text-slate-300">{feature.description}</p>
+                <div className="absolute top-6 right-6">
                   {getIcon(feature.icon)}
                 </div>
-                <h1 className="text-3xl md:text-4xl font-bold text-primary">{feature.title}</h1>
               </div>
               
               <div className="prose prose-lg max-w-none mb-12">
-                <p className="text-xl text-gray-600 mb-8">{feature.description}</p>
-                
                 <div dangerouslySetInnerHTML={{ __html: feature.detailContent || '' }} />
               </div>
               

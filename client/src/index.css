@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Add custom styles for feature detail headings */
+.prose h2 {
+  @apply text-blue-600 text-3xl font-bold mb-4;
+}
+
+.prose h3 {
+  @apply text-blue-500 text-xl font-bold mt-8 mb-3;
+}
+
 @layer base {
   :root {
     --background: 210 40% 98%;
