@@ -11,6 +11,7 @@ import bcrypt from "bcryptjs";
 import * as authController from "./controllers/auth";
 import * as subscriptionController from "./controllers/subscription";
 import * as licenseController from "./controllers/license";
+import * as webhookController from "./controllers/webhook";
 
 // Import middleware
 import { requireAuth } from "./middleware/auth";
@@ -160,6 +161,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+  
+  // PayPal webhook endpoint - doesn't require authentication
+  app.post("/api/webhooks/paypal", webhookController.handlePayPalWebhook);
 
   const httpServer = createServer(app);
   return httpServer;

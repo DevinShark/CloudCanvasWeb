@@ -1,7 +1,7 @@
 import fetch from "node-fetch";
 import { User, Subscription } from "@shared/schema";
 import { storage } from "../storage";
-import { getSubscriptionEndDate, getSubscriptionPrice } from "@/lib/utils";
+import { getSubscriptionEndDate, getSubscriptionPrice } from "../lib/utils";
 
 // PayPal API configuration
 const PAYPAL_API = process.env.PAYPAL_API_URL || "https://api-m.sandbox.paypal.com";

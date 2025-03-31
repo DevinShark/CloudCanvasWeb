@@ -1,6 +1,6 @@
 import nodemailer from "nodemailer";
 import { User, Subscription, License } from "@shared/schema";
-import { formatPlanName, formatDate } from "@/lib/utils";
+import { formatPlanName, formatDate } from "../lib/utils";
 
 // Set up email transport
 const transporter = nodemailer.createTransport({
@@ -248,6 +248,166 @@ export class EmailService {
           <hr style="border: 1px solid #eee; margin: 30px 0;" />
           <p>If you have any urgent concerns, please contact our support team directly at support@cloudcanvas.com.</p>
           <p style="font-size: 12px; color: #666;">Thank you for your interest in Cloud Canvas!</p>
+        </div>
+      `,
+    };
+    
+    await transporter.sendMail(mailOptions);
+  }
+
+  // Send license renewal email when subscription payment is processed
+  static async sendLicenseRenewalEmail(
+    user: User,
+    license: License,
+    subscription: Subscription
+  ): Promise<void> {
+    // Use helper to generate dashboard URL
+    const dashboardUrl = getAppUrl('dashboard');
+    
+    const mailOptions = {
+      from: process.env.EMAIL_FROM || "Cloud Canvas <no-reply@cloudcanvas.com>",
+      to: user.email,
+      subject: "Your Cloud Canvas License Has Been Renewed",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2B3F6C; margin-bottom: 20px;">License Renewal Confirmation</h2>
+          <p>Dear ${user.firstName || user.email.split('@')[0]},</p>
+          <p>We're pleased to confirm that your Cloud Canvas subscription payment has been processed successfully, and your license has been renewed.</p>
+          
+          <div style="background-color: #f5f7fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+            <p><strong>Plan:</strong> ${formatPlanName(subscription.plan)}</p>
+            <p><strong>License Key:</strong> <span style="font-family: monospace;">${license.licenseKey}</span></p>
+            <p><strong>New Expiration Date:</strong> ${formatDate(new Date(license.expiryDate))}</p>
+            <p><strong>Next Billing Date:</strong> ${formatDate(new Date(subscription.endDate || ""))}</p>
+          </div>
+          
+          <p>You don't need to do anything with your existing Cloud Canvas installation. Your license has been automatically extended, and your software will continue to work without interruption.</p>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${dashboardUrl}" style="background-color: #2B3F6C; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px; font-weight: bold;">View Dashboard</a>
+          </div>
+          
+          <hr style="border: 1px solid #eee; margin: 30px 0;" />
+          <p>If you have any questions or need assistance, please don't hesitate to contact our support team at support@cloudcanvas.com.</p>
+          <p style="font-size: 12px; color: #666;">Thank you for your continued support of Cloud Canvas!</p>
+        </div>
+      `,
+    };
+    
+    await transporter.sendMail(mailOptions);
+  }
+  
+  // Send payment failure email
+  static async sendPaymentFailureEmail(
+    user: User,
+    subscription: Subscription
+  ): Promise<void> {
+    // Use helper to generate dashboard URL
+    const dashboardUrl = getAppUrl('dashboard/billing');
+    
+    const mailOptions = {
+      from: process.env.EMAIL_FROM || "Cloud Canvas <no-reply@cloudcanvas.com>",
+      to: user.email,
+      subject: "Action Required: Cloud Canvas Payment Failed",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #e63946; margin-bottom: 20px;">Payment Failed</h2>
+          <p>Dear ${user.firstName || user.email.split('@')[0]},</p>
+          <p>We were unable to process your recent payment for your Cloud Canvas subscription.</p>
+          
+          <div style="background-color: #f5f7fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+            <p><strong>Plan:</strong> ${formatPlanName(subscription.plan)}</p>
+            <p><strong>Billing Type:</strong> ${subscription.billingType === "annual" ? "Annual" : "Monthly"}</p>
+          </div>
+          
+          <p>To ensure uninterrupted access to Cloud Canvas, please update your payment information as soon as possible. PayPal will automatically retry the payment, but you can also update your payment details through your PayPal account or through our dashboard.</p>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${dashboardUrl}" style="background-color: #2B3F6C; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px; font-weight: bold;">Update Payment Information</a>
+          </div>
+          
+          <p><strong>Note:</strong> If your payment method is not updated successfully, your subscription and license may be suspended.</p>
+          
+          <hr style="border: 1px solid #eee; margin: 30px 0;" />
+          <p>If you have any questions or need assistance, please don't hesitate to contact our support team at support@cloudcanvas.com.</p>
+          <p style="font-size: 12px; color: #666;">Thank you for your attention to this matter.</p>
+        </div>
+      `,
+    };
+    
+    await transporter.sendMail(mailOptions);
+  }
+  
+  // Send subscription cancellation email
+  static async sendSubscriptionCancellationEmail(
+    user: User,
+    subscription: Subscription
+  ): Promise<void> {
+    const mailOptions = {
+      from: process.env.EMAIL_FROM || "Cloud Canvas <no-reply@cloudcanvas.com>",
+      to: user.email,
+      subject: "Your Cloud Canvas Subscription Has Been Cancelled",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2B3F6C; margin-bottom: 20px;">Subscription Cancellation Confirmation</h2>
+          <p>Dear ${user.firstName || user.email.split('@')[0]},</p>
+          <p>We're sorry to see you go. This email confirms that your Cloud Canvas subscription has been cancelled as requested.</p>
+          
+          <div style="background-color: #f5f7fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+            <p><strong>Plan:</strong> ${formatPlanName(subscription.plan)}</p>
+            <p><strong>Access Until:</strong> ${formatDate(new Date(subscription.endDate || ""))}</p>
+          </div>
+          
+          <p>You'll continue to have access to Cloud Canvas until the end of your current billing period as shown above. After this date, your license will no longer be active, and you won't be charged again.</p>
+          
+          <p>We'd love to know what we could have done better. If you have a moment, please reply to this email with your feedback.</p>
+          
+          <p>If you change your mind, you can resubscribe at any time through our website.</p>
+          
+          <hr style="border: 1px solid #eee; margin: 30px 0;" />
+          <p>If you have any questions or need assistance, please don't hesitate to contact our support team at support@cloudcanvas.com.</p>
+          <p style="font-size: 12px; color: #666;">Thank you for trying Cloud Canvas. We hope to welcome you back in the future!</p>
+        </div>
+      `,
+    };
+    
+    await transporter.sendMail(mailOptions);
+  }
+  
+  // Send subscription expired email
+  static async sendSubscriptionExpiredEmail(
+    user: User,
+    subscription: Subscription
+  ): Promise<void> {
+    // Use helper to generate pricing URL
+    const pricingUrl = getAppUrl('#pricing');
+    
+    const mailOptions = {
+      from: process.env.EMAIL_FROM || "Cloud Canvas <no-reply@cloudcanvas.com>",
+      to: user.email,
+      subject: "Your Cloud Canvas Subscription Has Expired",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #e63946; margin-bottom: 20px;">Subscription Expired</h2>
+          <p>Dear ${user.firstName || user.email.split('@')[0]},</p>
+          <p>Your Cloud Canvas subscription has expired, and your license is no longer active.</p>
+          
+          <div style="background-color: #f5f7fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+            <p><strong>Plan:</strong> ${formatPlanName(subscription.plan)}</p>
+            <p><strong>Expired On:</strong> ${formatDate(new Date(subscription.endDate || ""))}</p>
+          </div>
+          
+          <p>To regain access to Cloud Canvas, please renew your subscription:</p>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${pricingUrl}" style="background-color: #2B3F6C; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px; font-weight: bold;">Renew Subscription</a>
+          </div>
+          
+          <p>If you have any saved projects, they will remain intact but will not be accessible until you renew your subscription.</p>
+          
+          <hr style="border: 1px solid #eee; margin: 30px 0;" />
+          <p>If you have any questions or need assistance, please don't hesitate to contact our support team at support@cloudcanvas.com.</p>
+          <p style="font-size: 12px; color: #666;">We hope to see you back soon!</p>
         </div>
       `,
     };

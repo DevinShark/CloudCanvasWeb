@@ -2,7 +2,7 @@ import crypto from "crypto";
 import axios from "axios";
 import { User, Subscription, License } from "@shared/schema";
 import { storage } from "../storage";
-import { getSubscriptionEndDate } from "@/lib/utils";
+import { getSubscriptionEndDate } from "../lib/utils";
 
 // LicenseGate API credentials
 const API_KEY = process.env.LICENSEGATE_API_KEY;

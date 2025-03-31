@@ -3,7 +3,7 @@ import { storage } from "../storage";
 import { PayPalService } from "../services/paypal";
 import { LicenseGateService } from "../services/licenseGate";
 import { EmailService } from "../services/email";
-import { getSubscriptionEndDate } from "@/lib/utils";
+import { getSubscriptionEndDate } from "../lib/utils";
 
 // Create a new subscription
 export const createSubscription = async (req: Request, res: Response) => {
