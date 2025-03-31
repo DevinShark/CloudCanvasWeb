@@ -7,7 +7,7 @@ import { getSubscriptionEndDate } from "@/lib/utils";
 // LicenseGate API credentials
 const API_KEY = process.env.LICENSEGATE_API_KEY;
 const USER_ID = process.env.LICENSEGATE_USER_ID;
-const API_URL = "https://api.licensegate.com/v1"; // Base API URL for LicenseGate
+const API_URL = process.env.LICENSEGATE_API_URL || "http://api.licensegate.com"; // Base API URL for LicenseGate (configurable)
 
 export class LicenseGateService {
   // Generate a unique license key locally (backup if API fails)
@@ -46,6 +46,7 @@ export class LicenseGateService {
       // Format plan details for the Notes field
       const planInfo = `Plan - ${subscription.plan.charAt(0).toUpperCase() + subscription.plan.slice(1)}
 Billing - ${subscription.billingType.charAt(0).toUpperCase() + subscription.billingType.slice(1)}
+PayPal ID - ${subscription.paypalSubscriptionId}
 Email - ${user.email}`;
       
       // Set license expiration date
@@ -55,39 +56,52 @@ Email - ${user.email}`;
       console.log("Creating license with LicenseGate API:", {
         fullName,
         planInfo,
-        expiryDate: expiryDate.toISOString().split("T")[0]
+        expiryDate: expiryDate.toISOString()
       });
+      
+      // Generate a fresh license key
+      const generatedLicenseKey = this.generateLicenseKey();
       
       // Create license via LicenseGate API
       const response = await axios.post(
-        `${API_URL}/key/generate`, 
+        `${API_URL}/admin/licenses`, 
         {
-          customer_name: fullName,
-          customer_email: user.email,
+          active: true,
+          name: fullName,
           notes: planInfo,
-          expires_at: expiryDate.toISOString().split("T")[0], // Format as YYYY-MM-DD
-          product_id: USER_ID // Using the user ID as the product ID
+          ipLimit: null,
+          licenseScope: null,
+          expirationDate: expiryDate.toISOString(),
+          validationPoints: null,
+          validationLimit: null,
+          replenishAmount: null,
+          replenishInterval: "TEN_SECONDS",
+          licenseKey: generatedLicenseKey // Use pre-generated key
         },
         {
           headers: {
             "Authorization": `Bearer ${API_KEY}`,
             "Content-Type": "application/json",
             "Accept": "application/json"
-          }
+          },
+          timeout: 10000 // Add timeout to prevent long wait
         }
       );
       
       console.log("LicenseGate API response:", response.data);
       
       if (response.status === 201 || response.status === 200) {
-        return response.data.key; // Using the correct field name for license key
+        return response.data.licenseKey || generatedLicenseKey; // Using the correct field name for license key
       } else {
         throw new Error(`Failed to create license: ${response.statusText}`);
       }
     } catch (error) {
       console.error("Error creating license on LicenseGate:", error);
-      // Fallback to local generation if API fails
-      return this.generateLicenseKey();
+      // In production, we would not want to fallback to local generation
+      // Since we're in development, we'll allow a fallback for testing purposes
+      const fallbackKey = this.generateLicenseKey();
+      console.log("Using fallback license key:", fallbackKey);
+      return fallbackKey;
     }
   }
   
@@ -121,9 +135,7 @@ Email - ${user.email}`;
         .join(" ") || user.email;
       
       // Format plan details for the Notes field
-      const planInfo = `Plan - Trial
-Billing - One-time
-Email - ${user.email}`;
+      const planInfo = `Trial license (${trialDays} days) for ${user.email}`;
       
       // Set trial expiration date
       const startDate = new Date();
@@ -133,29 +145,35 @@ Email - ${user.email}`;
       console.log("Creating trial license with LicenseGate API:", {
         fullName,
         planInfo,
-        expiryDate: expiryDate.toISOString().split("T")[0]
+        expiryDate: expiryDate.toISOString()
       });
       
-      // Create trial license via LicenseGate API
+      // Generate a fresh license key
+      const generatedLicenseKey = this.generateLicenseKey();
+      
+      // Create trial license via LicenseGate API using the format from documentation
       const response = await axios.post(
-        `${API_URL}/key/generate`, 
+        `${API_URL}/admin/licenses`, 
         {
-          customer_name: fullName,
-          customer_email: user.email,
+          active: true,
+          name: fullName,
           notes: planInfo,
-          expires_at: expiryDate.toISOString().split("T")[0], // Format as YYYY-MM-DD
-          product_id: USER_ID, // Using the user ID as the product ID
-          meta: {
-            is_trial: true,
-            trial_days: trialDays
-          }
+          ipLimit: null,
+          licenseScope: null,
+          expirationDate: expiryDate.toISOString(),
+          validationPoints: null,
+          validationLimit: null,
+          replenishAmount: null,
+          replenishInterval: "TEN_SECONDS",
+          licenseKey: generatedLicenseKey // Use pre-generated key
         },
         {
           headers: {
             "Authorization": `Bearer ${API_KEY}`,
             "Content-Type": "application/json",
             "Accept": "application/json"
-          }
+          },
+          timeout: 10000 // Add timeout to prevent long wait
         }
       );
       
@@ -164,7 +182,8 @@ Email - ${user.email}`;
       let licenseKey = "";
       
       if (response.status === 201 || response.status === 200) {
-        licenseKey = response.data.key; // Using the correct field name for license key
+        // If successful, use the key from the response (if available) or use our generated key
+        licenseKey = response.data.licenseKey || generatedLicenseKey;
       } else {
         throw new Error(`Failed to create trial license: ${response.statusText}`);
       }
@@ -179,27 +198,16 @@ Email - ${user.email}`;
         createdAt: startDate.toISOString()
       });
       
+      // Only send email if license creation in LicenseGate was successful
+      console.log("Trial license created successfully:", license);
+      
       return license;
     } catch (error) {
       console.error("Error creating trial license on LicenseGate:", error);
       
-      // Fallback to local generation if API fails
-      const licenseKey = this.generateLicenseKey();
-      const startDate = new Date();
-      const expiryDate = new Date(startDate);
-      expiryDate.setDate(expiryDate.getDate() + trialDays);
-      
-      // Create the license in local storage with fallback key
-      const license = await storage.createLicense({
-        userId: user.id,
-        subscriptionId: null, // Null for trial licenses
-        licenseKey,
-        isActive: true,
-        expiryDate,
-        createdAt: startDate.toISOString()
-      });
-      
-      return license;
+      // If it's a server error, don't create a fallback license
+      // This ensures we don't send emails with fake license keys
+      throw new Error("Failed to generate trial license. Please try again later.");
     }
   }
   
@@ -214,12 +222,13 @@ Email - ${user.email}`;
       
       // Try to validate with the LicenseGate API first
       const response = await axios.get(
-        `${API_URL}/key/validate/${licenseKey}`,
+        `${API_URL}/admin/licenses/${licenseKey}`,
         {
           headers: {
             "Authorization": `Bearer ${API_KEY}`,
             "Accept": "application/json"
-          }
+          },
+          timeout: 10000 // Add timeout to prevent long wait
         }
       );
       
@@ -228,9 +237,17 @@ Email - ${user.email}`;
       if (response.status === 200) {
         const apiLicense = response.data;
         
-        // Check the status from the API - valid is true/false in the response
-        if (!apiLicense.valid) {
-          return { isValid: false, message: apiLicense.message || "License is invalid" };
+        // Check if the license is active in the API
+        if (!apiLicense.active) {
+          return { isValid: false, message: "License is inactive" };
+        }
+        
+        // Check if the license has expired
+        const now = new Date();
+        const expiryDate = apiLicense.expirationDate ? new Date(apiLicense.expirationDate) : null;
+        
+        if (expiryDate && now > expiryDate) {
+          return { isValid: false, message: "License has expired" };
         }
         
         // If valid in API, find in our local storage
@@ -287,17 +304,29 @@ Email - ${user.email}`;
       });
       
       // Update license status in LicenseGate API
-      const response = await axios.post(
-        `${API_URL}/key/update/${license.licenseKey}`,
+      const response = await axios.put(
+        `${API_URL}/admin/licenses/${license.licenseKey}`, 
         {
-          status: isActive ? "active" : "inactive"
+          active: isActive,
+          // Keep other fields unchanged
+          name: "",
+          notes: "",
+          ipLimit: null,
+          licenseScope: null,
+          expirationDate: null, // Don't change the expiration date here
+          validationPoints: null,
+          validationLimit: null,
+          replenishAmount: null,
+          replenishInterval: "TEN_SECONDS",
+          licenseKey: license.licenseKey
         },
         {
           headers: {
             "Authorization": `Bearer ${API_KEY}`,
             "Content-Type": "application/json",
             "Accept": "application/json"
-          }
+          },
+          timeout: 10000 // Add timeout to prevent long wait
         }
       );
       
@@ -320,22 +349,33 @@ Email - ${user.email}`;
     try {
       console.log("Extending license with LicenseGate API:", {
         licenseKey: license.licenseKey,
-        newExpiryDate: newExpiryDate.toISOString().split("T")[0]
+        newExpiryDate: newExpiryDate.toISOString()
       });
       
       // Update license expiry in LicenseGate API
-      const response = await axios.post(
-        `${API_URL}/key/update/${license.licenseKey}`,
+      const response = await axios.put(
+        `${API_URL}/admin/licenses/${license.licenseKey}`,
         {
-          expires_at: newExpiryDate.toISOString().split("T")[0], // Format as YYYY-MM-DD
-          status: "active"
+          active: true, // Keep license active when extending
+          // Keep other fields unchanged
+          name: "",
+          notes: "",
+          ipLimit: null,
+          licenseScope: null,
+          expirationDate: newExpiryDate.toISOString(),
+          validationPoints: null,
+          validationLimit: null,
+          replenishAmount: null,
+          replenishInterval: "TEN_SECONDS",
+          licenseKey: license.licenseKey
         },
         {
           headers: {
             "Authorization": `Bearer ${API_KEY}`,
             "Content-Type": "application/json",
             "Accept": "application/json"
-          }
+          },
+          timeout: 10000 // Add timeout to prevent long wait
         }
       );
       

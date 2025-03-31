@@ -316,36 +316,46 @@ export const generateTrialLicense = async (req: Request, res: Response) => {
       });
     }
     
-    // Create a trial license with the integrated LicenseGate service
-    const trialLicense = await LicenseGateService.createTrialLicense(user, 30); // 30-day trial
-    
-    // Create mock subscription object for email template
-    const trialStartDate = new Date(trialLicense.createdAt || new Date());
-    const trialEndDate = new Date(trialLicense.expiryDate);
-    
-    // Send trial license email
-    await EmailService.sendLicenseKeyEmail(
-      user, 
-      trialLicense, 
-      {
-        id: 0,
-        paypalSubscriptionId: 'TRIAL',
-        userId,
-        plan: 'trial',
-        status: 'active',
-        billingType: 'one-time',
-        startDate: trialStartDate,
-        endDate: trialEndDate,
-        createdAt: trialStartDate
-      } as any
-    );
+    try {
+      // Create a trial license with the integrated LicenseGate service
+      // This will throw an error if the API fails
+      const trialLicense = await LicenseGateService.createTrialLicense(user, 30); // 30-day trial
+      
+      // Only send email if license creation was successful
+      // Create mock subscription object for email template
+      const trialStartDate = new Date(trialLicense.createdAt || new Date());
+      const trialEndDate = new Date(trialLicense.expiryDate);
+      
+      // Send trial license email
+      await EmailService.sendLicenseKeyEmail(
+        user, 
+        trialLicense, 
+        {
+          id: 0,
+          paypalSubscriptionId: 'TRIAL',
+          userId,
+          plan: 'trial',
+          status: 'active',
+          billingType: 'one-time',
+          startDate: trialStartDate,
+          endDate: trialEndDate,
+          createdAt: trialStartDate
+        } as any
+      );
 
-    res.status(201).json({
-      success: true,
-      message: "Trial license generated successfully",
-      licenseKey: trialLicense.licenseKey,
-      license: trialLicense
-    });
+      return res.status(201).json({
+        success: true,
+        message: "Trial license generated successfully",
+        licenseKey: trialLicense.licenseKey,
+        license: trialLicense
+      });
+    } catch (err: any) {
+      console.error("Error creating trial license:", err);
+      return res.status(500).json({
+        success: false,
+        message: err.message || "Failed to generate trial license. Please try again later."
+      });
+    }
   } catch (error) {
     console.error("Generate trial license error:", error);
     res.status(500).json({
