@@ -17,25 +17,115 @@ const FeatureDetailPage = () => {
     {
       id: "point-cloud",
       title: "Point Cloud Processing",
-      description: "Import, filter, and analyze LAS files and other point cloud formats with advanced processing capabilities.",
+      description: "Advanced tools for importing, processing, and analyzing point cloud data from various sources.",
       icon: "cube",
       detailContent: `
-        <h2>Point Cloud Processing</h2>
-        <p>Our advanced point cloud processing tools enable you to work efficiently with large LAS and other point cloud formats.</p>
+        <h2>Comprehensive Point Cloud Management</h2>
+        <p>Cloud Canvas provides state-of-the-art point cloud processing capabilities designed for surveyors, engineers, and GIS professionals. Our sophisticated algorithms allow you to work efficiently with massive datasets while maintaining precision and detail.</p>
         
-        <h3>Key Capabilities:</h3>
-        <ul>
-          <li>Support for industry-standard formats: LAS, LAZ, XYZ, PLY, and more</li>
-          <li>Automatic point classification for ground, vegetation, buildings, and other features</li>
-          <li>Point cloud filtering and noise reduction</li>
-          <li>Efficient thinning algorithms for large datasets</li>
-          <li>Custom visualization options including height, intensity, and classification coloring</li>
-          <li>Point cloud registration and merging</li>
+        <h3>Key Capabilities</h3>
+        <p>Explore some of the powerful point cloud processing capabilities below. Cloud Canvas includes over 25 specialized tools to handle every aspect of your workflow.</p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
+          <div class="bg-background p-6 rounded-lg shadow-sm border border-gray-100">
+            <div class="flex items-center mb-3 text-primary">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-3"><path d="M14 3v4a1 1 0 0 0 1 1h4"></path><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"></path><path d="M12 17v-6"></path><path d="M9 14h6"></path></svg>
+              <h4 class="text-lg font-semibold">Multi-Format Import</h4>
+            </div>
+            <p>Import and merge point cloud data from LAS, LAZ, XYZ, CSV, TXT, and DXF formats with custom field mapping.</p>
+          </div>
+          
+          <div class="bg-background p-6 rounded-lg shadow-sm border border-gray-100">
+            <div class="flex items-center mb-3 text-primary">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-3"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line></svg>
+              <h4 class="text-lg font-semibold">Advanced Point Filtering</h4>
+            </div>
+            <p>Separate ground and non-ground points using our proprietary multi-parameter morphological filter with attribute weighting and interactive selection.</p>
+          </div>
+          
+          <div class="bg-background p-6 rounded-lg shadow-sm border border-gray-100">
+            <div class="flex items-center mb-3 text-primary">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-3"><path d="M6 18 18 6M18 18 6 6"></path></svg>
+              <h4 class="text-lg font-semibold">Intelligent Decimation</h4>
+            </div>
+            <p>Reduce point cloud size while preserving critical features using grid-based, curvature-sensitive, and random subsampling methods.</p>
+          </div>
+          
+          <div class="bg-background p-6 rounded-lg shadow-sm border border-gray-100">
+            <div class="flex items-center mb-3 text-primary">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-3"><circle cx="13.5" cy="6.5" r="4.5"></circle><circle cx="5.5" cy="12.5" r="4.5"></circle><circle cx="18.5" cy="19.5" r="4.5"></circle></svg>
+              <h4 class="text-lg font-semibold">Point Cloud Colorization</h4>
+            </div>
+            <p>Apply color from orthoimagery, attribute mapping, and elevation-based gradients for enhanced visualization and analysis.</p>
+          </div>
+          
+          <div class="bg-background p-6 rounded-lg shadow-sm border border-gray-100">
+            <div class="flex items-center mb-3 text-primary">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-3"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
+              <h4 class="text-lg font-semibold">Interactive Selection Tools</h4>
+            </div>
+            <p>Select and edit point clouds using polygon drawing, lasso selection, and fence tools with immediate visual feedback.</p>
+          </div>
+          
+          <div class="bg-background p-6 rounded-lg shadow-sm border border-gray-100">
+            <div class="flex items-center mb-3 text-primary">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-3"><path d="M2 12h20"></path><path d="M10 16v-4a2 2 0 0 1 4 0v4"></path><path d="M14 16h-4"></path></svg>
+              <h4 class="text-lg font-semibold">Point Cloud Smoothing</h4>
+            </div>
+            <p>Apply targeted noise reduction and smoothing operations while preserving sharp features and discontinuities.</p>
+          </div>
+        </div>
+        
+        <h3>Threshold Filtering</h3>
+        <p>Cloud Canvas offers a sophisticated multi-parameter morphological filter for precise ground/non-ground point classification. This advanced algorithm combines geometric, color, density, and intensity data to effectively handle complex terrain and vegetation scenarios.</p>
+        
+        <ul class="mt-4 space-y-2">
+          <li>Adaptive morphological filtering with customizable cell sizes and slope thresholds that adjust to local terrain conditions</li>
+          <li>Multi-attribute weighting system that intelligently combines RGB color, point density, and intensity values for optimal filtering results</li>
+          <li>Interactive polygon selection that allows precise filtering of specific areas with real-time visual feedback</li>
+          <li>Statistical outlier removal based on neighborhood analysis with adjustable neighbor count and standard deviation ratios</li>
+          <li>Dynamic window sizing that automatically adapts to terrain complexity for more accurate ground detection</li>
+          <li>Masking capabilities to protect and preserve critical features during filtering operations</li>
         </ul>
         
-        <p>Whether you're working with aerial LiDAR, terrestrial laser scanning, or photogrammetrically derived point clouds, Cloud Canvas provides the tools you need to process, analyze, and extract value from your point cloud data.</p>
+        <h3>Point Cloud Analysis</h3>
+        <p>Gain deeper insights into your point cloud data with built-in analysis tools that extract meaningful information about terrain characteristics and surface properties.</p>
         
-        <p>The intuitive interface allows you to quickly load even massive point cloud datasets and immediately begin analysis, with automatic optimization for your hardware configuration to ensure smooth performance.</p>
+        <ul class="mt-4 space-y-2">
+          <li>Statistical analysis of point distributions and density</li>
+          <li>Surface roughness mapping for identifying terrain features</li>
+          <li>Slope and aspect calculation for geomorphological assessment</li>
+          <li>Feature extraction including ridges and valleys</li>
+        </ul>
+        
+        <h3>Typical Workflow</h3>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 my-8">
+          <div class="bg-background p-4 rounded-lg shadow-sm border border-gray-100 relative">
+            <div class="w-8 h-8 bg-blue-500 rounded-full text-white flex items-center justify-center absolute -top-3 -left-3">1</div>
+            <h4 class="font-semibold mb-2 mt-2">Import & Merge</h4>
+            <p class="text-sm">Import point clouds from multiple sources and formats, with custom attribute mapping and coordinate system transformation.</p>
+          </div>
+          
+          <div class="bg-background p-4 rounded-lg shadow-sm border border-gray-100 relative">
+            <div class="w-8 h-8 bg-blue-500 rounded-full text-white flex items-center justify-center absolute -top-3 -left-3">2</div>
+            <h4 class="font-semibold mb-2 mt-2">Filter & Clean</h4>
+            <p class="text-sm">Apply our advanced morphological filtering with multi-attribute weighting to separate ground and non-ground points with precision.</p>
+          </div>
+          
+          <div class="bg-background p-4 rounded-lg shadow-sm border border-gray-100 relative">
+            <div class="w-8 h-8 bg-blue-500 rounded-full text-white flex items-center justify-center absolute -top-3 -left-3">3</div>
+            <h4 class="font-semibold mb-2 mt-2">Interactive Selection</h4>
+            <p class="text-sm">Use polygon drawing and interactive tools to isolate areas of interest with real-time feedback and editing capabilities.</p>
+          </div>
+          
+          <div class="bg-background p-4 rounded-lg shadow-sm border border-gray-100 relative">
+            <div class="w-8 h-8 bg-blue-500 rounded-full text-white flex items-center justify-center absolute -top-3 -left-3">4</div>
+            <h4 class="font-semibold mb-2 mt-2">Analyze & Export</h4>
+            <p class="text-sm">Extract insights with statistical analysis tools and export results in various formats for visualization and further processing.</p>
+          </div>
+        </div>
+        
+        <p>Whether you're working with aerial LiDAR, terrestrial laser scanning, or photogrammetrically derived point clouds, Cloud Canvas provides the comprehensive toolset you need to process, analyze, and extract value from even the largest and most complex point cloud datasets.</p>
       `
     },
     {

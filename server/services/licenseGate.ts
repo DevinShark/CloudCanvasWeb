@@ -32,7 +32,7 @@ export class LicenseGateService {
     return licenseKey;
   }
   
-  // Create a license on LicenseGate
+  // Create a license on LicenseGate API - returns the created license key
   static async createLicenseOnLicenseGate(
     user: User, 
     subscription: Subscription
@@ -62,8 +62,10 @@ export class LicenseGateService {
     });
     
     // Check if we have valid API credentials
-    const hasValidCredentials = API_KEY && API_URL && USER_ID;
-    let licenseCreatedInLicenseGate = false;
+    if (!API_KEY || !API_URL) {
+      console.error("Missing API credentials for LicenseGate");
+      throw new Error("LicenseGate API credentials are not configured. Contact administrator.");
+    }
     
     // Format notes field for CloudCanvas requirements
     const notes = `CloudCanvas ${subscription.plan.charAt(0).toUpperCase() + subscription.plan.slice(1)} - ${
@@ -82,83 +84,87 @@ export class LicenseGateService {
       features = ["basic", "standard", "professional", "enterprise"];
     }
     
-    // Only try to connect to LicenseGate if we have credentials
-    if (hasValidCredentials) {
-      try {
-        console.log("Attempting to connect to LicenseGate API...");
-        // Create license via LicenseGate API using CloudCanvas format
-        const response = await axios.post(
-          `${API_URL}/admin/licenses`, 
-          {
-            name: fullName,
-            licenseKey: licenseKey,
-            notes: notes,
-            expirationDate: expiryDate.toISOString(),
-            licenseScope: licenseScope,
-            active: true,
-            restrictions: {
-              features: features
-            }
-          },
-          {
-            headers: {
-              "Authorization": `Bearer ${API_KEY}`,
-              "Content-Type": "application/json",
-              "Accept": "application/json"
-            },
-            timeout: 10000 // Add timeout to prevent long wait
+    try {
+      console.log("Connecting to LicenseGate API...");
+      // Create license via LicenseGate API using CloudCanvas format
+      const response = await axios.post(
+        `${API_URL}/admin/licenses`, 
+        {
+          name: fullName,
+          licenseKey: licenseKey,
+          notes: notes,
+          expirationDate: expiryDate.toISOString(),
+          licenseScope: licenseScope,
+          active: true,
+          restrictions: {
+            features: features
           }
-        );
-        
-        console.log("LicenseGate API response:", response.data);
-        
-        if (response.status === 201 || response.status === 200) {
-          // If successful, use the key from the response if available
-          const returnedKey = response.data && response.data.licenseKey ? response.data.licenseKey : licenseKey;
-          console.log("License successfully created in LicenseGate with key:", returnedKey);
-          licenseCreatedInLicenseGate = true;
-          return returnedKey;
+        },
+        {
+          headers: {
+            "Authorization": `Bearer ${API_KEY}`,
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          timeout: 10000 // Add timeout to prevent long wait
         }
-      } catch (err) {
-        const error = err as any;
-        console.error("Error connecting to LicenseGate API:", error);
-        if (error.response) {
-          console.error("LicenseGate API error response:", {
-            status: error.response.status,
-            data: error.response.data,
-            headers: error.response.headers
-          });
-        }
-        console.log("Proceeding with local license generation only.");
-        // Continue with local license creation - don't throw
+      );
+      
+      console.log("LicenseGate API response:", response.data);
+      
+      if (response.status === 201 || response.status === 200) {
+        // If successful, use the key from the response if available
+        const returnedKey = response.data && response.data.licenseKey ? response.data.licenseKey : licenseKey;
+        console.log("License successfully created in LicenseGate with key:", returnedKey);
+        return returnedKey;
+      } else {
+        throw new Error(`Unexpected response from LicenseGate API: ${response.statusText}`);
       }
-    } else {
-      console.log("No valid LicenseGate API credentials found. Using locally generated license key.");
+    } catch (err) {
+      const error = err as any;
+      console.error("Error connecting to LicenseGate API:", error);
+      
+      if (error.response) {
+        console.error("LicenseGate API error response:", {
+          status: error.response.status,
+          data: error.response.data
+        });
+        
+        if (error.response.status === 401) {
+          throw new Error("Authentication failed with LicenseGate. Invalid API credentials.");
+        }
+      }
+      
+      // Don't create license if LicenseGate call fails
+      throw new Error("Failed to generate license in LicenseGate. Please try again later.");
     }
-    
-    console.log("Using locally generated license key:", licenseKey);
-    return licenseKey;
   }
   
-  // Create a new license for a subscription
+  // Create a new license for a subscription - only creates after successful LicenseGate creation
   static async createLicense(user: User, subscription: Subscription): Promise<License> {
-    // Create a license on LicenseGate
+    // Create a license on LicenseGate - this will throw an error if it fails
     const licenseKey = await this.createLicenseOnLicenseGate(user, subscription);
     
     // Set the expiry date based on subscription end date
     const expiryDate = subscription.endDate || 
       getSubscriptionEndDate(new Date(subscription.startDate), subscription.billingType);
     
-    // Create the license in local storage
-    const license = await storage.createLicense({
-      userId: user.id,
-      subscriptionId: subscription.id,
-      licenseKey,
-      isActive: true,
-      expiryDate
-    });
-    
-    return license;
+    try {
+      // Create the license in our database ONLY after successful LicenseGate creation
+      const license = await storage.createLicense({
+        userId: user.id,
+        subscriptionId: subscription.id,
+        licenseKey,
+        isActive: true,
+        expiryDate
+      });
+      
+      console.log("License created successfully in database:", license);
+      return license;
+    } catch (storageError) {
+      console.error("Error creating license in database:", storageError);
+      throw new Error("License was created in LicenseGate but failed to save in database. Please contact support.");
+    }
   }
   
   // Create a trial license via LicenseGate API
@@ -185,80 +191,85 @@ export class LicenseGateService {
     });
     
     // Check if we have valid API credentials
-    const hasValidCredentials = API_KEY && API_URL && USER_ID;
-    let licenseCreatedInLicenseGate = false;
-    
-    // Only try to connect to LicenseGate if we have credentials
-    if (hasValidCredentials) {
-      try {
-        console.log("Attempting to connect to LicenseGate API...");
-        // Format according to CloudCanvas requirements
-        const response = await axios.post(
-          `${API_URL}/admin/licenses`, 
-          {
-            name: "CloudCanvas Trial",
-            licenseKey: trialLicenseKey,
-            notes: `${trialDays}-day trial license for CloudCanvas for ${user.email}`,
-            expirationDate: expiryDate.toISOString(),
-            licenseScope: "trial",
-            active: true,
-            restrictions: {
-              maxDays: trialDays,
-              features: ["basic", "trial"]
-            }
-          },
-          {
-            headers: {
-              "Authorization": `Bearer ${API_KEY}`,
-              "Content-Type": "application/json",
-              "Accept": "application/json"
-            },
-            timeout: 10000 // Add timeout to prevent long wait
-          }
-        );
-        
-        console.log("LicenseGate API trial response:", response.data);
-        
-        if (response.status === 201 || response.status === 200) {
-          // If successful, use the key from the response if available
-          if (response.data && response.data.licenseKey) {
-            trialLicenseKey = response.data.licenseKey;
-          }
-          console.log("License successfully created in LicenseGate with key:", trialLicenseKey);
-          licenseCreatedInLicenseGate = true;
-        }
-      } catch (err) {
-        const error = err as any;
-        console.error("Error connecting to LicenseGate API:", error);
-        if (error.response) {
-          console.error("LicenseGate API error response:", {
-            status: error.response.status,
-            data: error.response.data
-          });
-        }
-        console.log("Proceeding with local license generation only.");
-        // Continue with local license creation - don't throw
-      }
-    } else {
-      console.log("No valid LicenseGate API credentials found. Using locally generated license key.");
+    if (!API_KEY || !API_URL) {
+      console.error("Missing API credentials for LicenseGate");
+      throw new Error("LicenseGate API credentials are not configured. Contact administrator.");
     }
     
     try {
-      // Create the license in local storage
-      const license = await storage.createLicense({
-        userId: user.id,
-        subscriptionId: null, // Null for trial licenses
-        licenseKey: trialLicenseKey,
-        isActive: true,
-        expiryDate,
-        createdAt: startDate.toISOString()
-      });
+      console.log("Connecting to LicenseGate API...");
+      // Format according to CloudCanvas requirements
+      const response = await axios.post(
+        `${API_URL}/admin/licenses`, 
+        {
+          name: "CloudCanvas Trial",
+          licenseKey: trialLicenseKey,
+          notes: `${trialDays}-day trial license for CloudCanvas for ${user.email}`,
+          expirationDate: expiryDate.toISOString(),
+          licenseScope: "trial",
+          active: true,
+          restrictions: {
+            maxDays: trialDays,
+            features: ["basic", "trial"]
+          }
+        },
+        {
+          headers: {
+            "Authorization": `Bearer ${API_KEY}`,
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          timeout: 10000 // Add timeout to prevent long wait
+        }
+      );
       
-      console.log("Trial license created successfully:", license);
-      return license;
-    } catch (storageError) {
-      console.error("Error creating license in local storage:", storageError);
-      throw new Error("Failed to generate trial license. Database error occurred.");
+      console.log("LicenseGate API trial response:", response.data);
+      
+      if (response.status === 201 || response.status === 200) {
+        // If successful, use the key from the response if available
+        if (response.data && response.data.licenseKey) {
+          trialLicenseKey = response.data.licenseKey;
+        }
+        console.log("License successfully created in LicenseGate with key:", trialLicenseKey);
+        
+        // Only create the license in our database after successful creation in LicenseGate
+        try {
+          // Create the license in local storage
+          const license = await storage.createLicense({
+            userId: user.id,
+            subscriptionId: null, // Null for trial licenses
+            licenseKey: trialLicenseKey,
+            isActive: true,
+            expiryDate,
+            createdAt: startDate.toISOString()
+          });
+          
+          console.log("Trial license created successfully in database:", license);
+          return license;
+        } catch (storageError) {
+          console.error("Error creating license in local storage:", storageError);
+          throw new Error("License was created in LicenseGate but failed to save in database. Please contact support.");
+        }
+      } else {
+        throw new Error(`Unexpected response from LicenseGate API: ${response.statusText}`);
+      }
+    } catch (err) {
+      const error = err as any;
+      console.error("Error connecting to LicenseGate API:", error);
+      
+      if (error.response) {
+        console.error("LicenseGate API error response:", {
+          status: error.response.status,
+          data: error.response.data
+        });
+        
+        if (error.response.status === 401) {
+          throw new Error("Authentication failed with LicenseGate. Invalid API credentials.");
+        }
+      }
+      
+      // Don't create license if LicenseGate call fails
+      throw new Error("Failed to generate license in LicenseGate. Please try again later.");
     }
   }
   
@@ -270,6 +281,12 @@ export class LicenseGateService {
   }> {
     try {
       console.log("Validating license with LicenseGate API:", licenseKey);
+      
+      // Check if we have valid API credentials
+      if (!API_KEY || !API_URL) {
+        console.error("Missing API credentials for LicenseGate");
+        throw new Error("LicenseGate API credentials are not configured.");
+      }
       
       // Try to validate with the LicenseGate API first
       const response = await axios.get(
@@ -317,8 +334,13 @@ export class LicenseGateService {
       } else {
         throw new Error("API validation failed");
       }
-    } catch (error) {
+    } catch (err) {
+      const error = err as any;
       console.error("Error validating license with LicenseGate API:", error);
+      
+      if (error.response && error.response.status === 401) {
+        throw new Error("Authentication failed with LicenseGate. Invalid API credentials.");
+      }
       
       // Fallback to local validation if API fails
       const licenses = Array.from((await Promise.all(
@@ -354,6 +376,12 @@ export class LicenseGateService {
         isActive
       });
       
+      // Check if we have valid API credentials
+      if (!API_KEY || !API_URL) {
+        console.error("Missing API credentials for LicenseGate");
+        throw new Error("LicenseGate API credentials are not configured.");
+      }
+      
       // Update license status in LicenseGate API
       const response = await axios.put(
         `${API_URL}/admin/licenses/${license.licenseKey}`, 
@@ -386,9 +414,15 @@ export class LicenseGateService {
       if (response.status !== 200) {
         throw new Error(`Failed to update license status: ${response.statusText}`);
       }
-    } catch (error) {
+    } catch (err) {
+      const error = err as any;
       console.error("Error updating license status on LicenseGate:", error);
-      // Continue with local update even if API fails
+      
+      if (error.response && error.response.status === 401) {
+        throw new Error("Authentication failed with LicenseGate. Invalid API credentials.");
+      }
+      
+      throw new Error("Failed to update license in LicenseGate. Please try again later.");
     }
     
     // Update license in local storage
@@ -402,6 +436,12 @@ export class LicenseGateService {
         licenseKey: license.licenseKey,
         newExpiryDate: newExpiryDate.toISOString()
       });
+      
+      // Check if we have valid API credentials
+      if (!API_KEY || !API_URL) {
+        console.error("Missing API credentials for LicenseGate");
+        throw new Error("LicenseGate API credentials are not configured.");
+      }
       
       // Update license expiry in LicenseGate API
       const response = await axios.put(
@@ -435,9 +475,15 @@ export class LicenseGateService {
       if (response.status !== 200) {
         throw new Error(`Failed to extend license: ${response.statusText}`);
       }
-    } catch (error) {
+    } catch (err) {
+      const error = err as any;
       console.error("Error extending license on LicenseGate:", error);
-      // Continue with local update even if API fails
+      
+      if (error.response && error.response.status === 401) {
+        throw new Error("Authentication failed with LicenseGate. Invalid API credentials.");
+      }
+      
+      throw new Error("Failed to extend license in LicenseGate. Please try again later.");
     }
     
     // Update license in local storage

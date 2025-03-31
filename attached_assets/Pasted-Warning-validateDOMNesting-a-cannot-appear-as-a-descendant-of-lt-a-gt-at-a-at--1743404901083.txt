@@ -1,0 +1,29 @@
+Warning: validateDOMNesting(...): <a> cannot appear as a descendant of &lt;a&gt;.
+    at a
+    at a
+    at https://40f64628-081a-4c56-9ecd-6dae18bdb86f-00-lkggoq4n7map.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=a26d9b71:337:18
+    at div
+    at div
+    at div
+    at header
+    at Header (https://40f64628-081a-4c56-9ecd-6dae18bdb86f-00-lkggoq4n7map.janeway.replit.dev/src/components/layout/Header.tsx:33:39)
+    at DashboardPage (https://40f64628-081a-4c56-9ecd-6dae18bdb86f-00-lkggoq4n7map.janeway.replit.dev/src/pages/DashboardPage.tsx:27:24)
+    at Route (https://40f64628-081a-4c56-9ecd-6dae18bdb86f-00-lkggoq4n7map.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=a26d9b71:323:16)
+    at Switch (https://40f64628-081a-4c56-9ecd-6dae18bdb86f-00-lkggoq4n7map.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=a26d9b71:379:17)
+    at App
+    at QueryClientProvider (https://40f64628-081a-4c56-9ecd-6dae18bdb86f-00-lkggoq4n7map.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=a26d9b71:2805:3)
+Get user subscription error: 
+Error {}
+
+Get user licenses error: 
+Error {}
+message: "404: {"success":false,"message":"License not found"}"
+stack: "Error: 404: {"success":false,"message":"License not found"}↵ at throwIfResNotOk (https://40f64628-081a-4c56-9ecd-6dae18bdb86f-00-lkggoq4n7map.janeway.replit.dev/src/lib/queryClient.ts:6:11)↵ at async apiRequest (https://40f64628-081a-4c56-9ecd-6dae18bdb86f-00-lkggoq4n7map.janeway.replit.dev/src/lib/queryClient.ts:17:5)↵ at async getUserLicenses (https://40f64628-081a-4c56-9ecd-6dae18bdb86f-00-lkggoq4n7map.janeway.replit.dev/src/lib/licenseGate.ts:24:22)"
+get stack: ƒ ()
+set stack: ƒ ()
+[[Prototype]]: Object
+
+at t.value (https://40f64628-081a-4c56-9ecd-6dae18bdb86f-00-lkggoq4n7map.janeway.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:17465)
+at new t (https://40f64628-081a-4c56-9ecd-6dae18bdb86f-00-lkggoq4n7map.janeway.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:12630)
+at t.value (https://40f64628-081a-4c56-9ecd-6dae18bdb86f-00-lkggoq4n7map.janeway.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:32766)
+at https://40f64628-081a-4c56-9ecd-6dae18bdb86f-00-lkggoq4n7map.janeway.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:34400
