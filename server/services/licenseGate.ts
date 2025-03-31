@@ -96,9 +96,7 @@ export class LicenseGateService {
           expirationDate: expiryDate.toISOString(),
           licenseScope: licenseScope,
           active: true,
-          restrictions: {
-            features: features
-          }
+          features: features
         },
         {
           headers: {
@@ -208,10 +206,8 @@ export class LicenseGateService {
           expirationDate: expiryDate.toISOString(),
           licenseScope: "trial",
           active: true,
-          restrictions: {
-            maxDays: trialDays,
-            features: ["basic", "trial"]
-          }
+          maxDays: trialDays,
+          features: ["basic", "trial"]
         },
         {
           headers: {

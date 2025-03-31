@@ -6,6 +6,11 @@ import { EmailService } from "../services/email";
 // Generate a license key for a subscription
 export const generateLicense = async (req: Request, res: Response) => {
   try {
+    console.log("License generation - Starting process");
+    console.log("API URL check:", process.env.LICENSEGATE_API_URL || "https://api.licensegate.io");
+    console.log("API KEY check:", process.env.LICENSEGATE_API_KEY ? "Present (not shown for security)" : "Missing!");
+    console.log("USER ID check:", process.env.LICENSEGATE_USER_ID ? "Present (not shown for security)" : "Missing!");
+    
     if (!req.user) {
       return res.status(401).json({
         success: false,
@@ -15,6 +20,9 @@ export const generateLicense = async (req: Request, res: Response) => {
 
     const userId = (req.user as any).id;
     const { subscriptionId } = req.body;
+    
+    console.log("License request for user:", userId, (req.user as any).email);
+    console.log("Subscription ID:", subscriptionId);
 
     if (!subscriptionId) {
       return res.status(400).json({
@@ -25,6 +33,8 @@ export const generateLicense = async (req: Request, res: Response) => {
 
     // Get the subscription
     const subscription = await storage.getSubscription(parseInt(subscriptionId));
+    
+    console.log("Subscription found:", !!subscription);
 
     if (!subscription) {
       return res.status(404).json({
@@ -32,9 +42,17 @@ export const generateLicense = async (req: Request, res: Response) => {
         message: "Subscription not found"
       });
     }
+    
+    console.log("Subscription details:", {
+      id: subscription.id,
+      plan: subscription.plan,
+      status: subscription.status,
+      billingType: subscription.billingType
+    });
 
     // Verify subscription belongs to the user
     if (subscription.userId !== userId) {
+      console.log("Subscription belongs to userId:", subscription.userId, "but request is from:", userId);
       return res.status(403).json({
         success: false,
         message: "Unauthorized to generate license for this subscription"
@@ -43,17 +61,24 @@ export const generateLicense = async (req: Request, res: Response) => {
 
     // Verify subscription is active
     if (subscription.status !== "active") {
+      console.log("Subscription status is not active:", subscription.status);
       return res.status(400).json({
         success: false,
         message: "Cannot generate license for inactive subscription"
       });
     }
+    
+    console.log("Creating license via LicenseGateService...");
 
     // Create license
     const license = await LicenseGateService.createLicense(req.user as any, subscription);
+    
+    console.log("License created successfully:", license.licenseKey);
 
     // Send license key email
+    console.log("Sending license key email...");
     await EmailService.sendLicenseKeyEmail(req.user as any, license, subscription);
+    console.log("Email sent successfully");
 
     res.status(201).json({
       success: true,
@@ -63,9 +88,19 @@ export const generateLicense = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Generate license error:", error);
+    
+    // Add more detailed error logging
+    if ((error as any).response) {
+      console.error("LicenseGate API error response:", {
+        status: (error as any).response.status,
+        data: (error as any).response.data,
+        headers: (error as any).response.headers
+      });
+    }
+    
     res.status(500).json({
       success: false,
-      message: "Server error during license generation"
+      message: error instanceof Error ? error.message : "Server error during license generation"
     });
   }
 };
