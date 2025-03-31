@@ -4,11 +4,11 @@
 
 /* Add custom styles for feature detail headings */
 .prose h2 {
-  @apply text-blue-600 text-3xl font-bold mb-4;
+  @apply text-slate-700 text-3xl font-bold mb-4;
 }
 
 .prose h3 {
-  @apply text-blue-500 text-xl font-bold mt-8 mb-3;
+  @apply text-slate-600 text-xl font-bold mt-8 mb-3;
 }
 
 @layer base {
