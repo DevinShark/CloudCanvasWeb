@@ -7,7 +7,7 @@ import { getSubscriptionEndDate } from "../lib/utils";
 // LicenseGate API credentials
 const API_KEY = process.env.LICENSEGATE_API_KEY;
 const USER_ID = process.env.LICENSEGATE_USER_ID;
-const API_URL = process.env.LICENSEGATE_API_URL || "https://api.licensegate.io"; // Base API URL for LicenseGate (configurable)
+const API_URL = (process.env.LICENSEGATE_API_URL || "https://api.licensegate.io").replace(/\/+$/, ''); // Remove trailing slashes
 
 export class LicenseGateService {
   // Generate a unique license key locally (backup if API fails)
