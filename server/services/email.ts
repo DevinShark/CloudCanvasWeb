@@ -3,13 +3,20 @@ import { User, Subscription, License } from "@shared/schema";
 import { formatPlanName, formatDate } from "../lib/utils";
 
 // Set up email transport
+// Ensure required environment variables are set for email functionality
+if (!process.env.EMAIL_HOST || !process.env.EMAIL_PORT || !process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+  console.error("CRITICAL ERROR: Missing required email environment variables (EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASSWORD). Email functionality will likely fail.");
+  // Optionally, you could throw an error here to prevent the app from starting without proper email config
+  // throw new Error("Missing required email environment variables");
+}
+
 const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || "smtp.ethereal.email",
-  port: parseInt(process.env.EMAIL_PORT || "587"),
-  secure: process.env.EMAIL_SECURE === "true" ? true : false,
+  host: process.env.EMAIL_HOST, // Rely solely on environment variable
+  port: parseInt(process.env.EMAIL_PORT || '587'), // Keep a default ONLY if parsing fails, but primary is env var
+  secure: process.env.EMAIL_SECURE === "true", // Rely solely on environment variable (true if string is "true")
   auth: {
-    user: process.env.EMAIL_USER || "ethereal.user@ethereal.email",
-    pass: process.env.EMAIL_PASSWORD || "ethereal_password",
+    user: process.env.EMAIL_USER, // Rely solely on environment variable
+    pass: process.env.EMAIL_PASSWORD, // Rely solely on environment variable (ensure name matches Render)
   },
 });
 
