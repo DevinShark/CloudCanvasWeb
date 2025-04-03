@@ -32,6 +32,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       secret: process.env.SESSION_SECRET || "cloud-canvas-secret",
     })
   );
+
+  // Exclude public routes from authentication check
+  app.use((req, res, next) => {
+    const publicPaths = ['/api/auth/register', '/api/auth/login', '/api/auth/verify-email', '/api/auth/forgot-password'];
+    if (publicPaths.includes(req.path) || !req.path.startsWith('/api/')) {
+      return next();
+    }
+    return requireAuth(req, res, next);
+  });
   
   // Configure passport with local strategy
   passport.use(
