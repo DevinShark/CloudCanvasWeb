@@ -33,14 +33,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     })
   );
 
-  // Exclude public routes from authentication check
-  app.use((req, res, next) => {
-    const publicPaths = ['/api/auth/register', '/api/auth/login', '/api/auth/verify-email', '/api/auth/forgot-password'];
-    if (publicPaths.includes(req.path) || !req.path.startsWith('/api/')) {
-      return next();
-    }
-    return requireAuth(req, res, next);
-  });
+  // Initialize passport and restore authentication state from session
+  app.use(passport.initialize());
+  app.use(passport.session());
   
   // Configure passport with local strategy
   passport.use(
@@ -95,7 +90,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/register", authController.register);
   app.post("/api/auth/login", authController.login);
   app.post("/api/auth/logout", authController.logout);
+  // Public routes
+  app.post("/api/auth/register", authController.register);
+  app.post("/api/auth/login", authController.login);
   app.post("/api/auth/verify-email/:token", authController.verifyEmail);
+  app.post("/api/auth/forgot-password", authController.forgotPassword);
+  app.post("/api/auth/reset-password", authController.resetPassword);
+
+  // Protected routes that require authentication
+  app.use((req, res, next) => {
+    if (!req.path.startsWith('/api/') || req.path.startsWith('/api/auth/') && req.method === 'POST') {
+      return next();
+    }
+    return requireAuth(req, res, next);
+  });
   app.post("/api/auth/forgot-password", authController.forgotPassword);
   app.post("/api/auth/reset-password", authController.resetPassword);
   app.get("/api/auth/me", requireAuth, authController.getCurrentUser);
