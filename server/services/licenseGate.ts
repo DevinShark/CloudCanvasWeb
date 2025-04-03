@@ -250,7 +250,7 @@ export class LicenseGateService {
         },
         {
           headers: {
-            Authorization: `Bearer ${API_KEY}`,
+            Authorization: API_KEY,
             "Content-Type": "application/json",
             Accept: "application/json",
           },
@@ -345,7 +345,7 @@ export class LicenseGateService {
         `${API_URL}/admin/licenses/${licenseKey}`,
         {
           headers: {
-            Authorization: `Bearer ${API_KEY}`,
+            Authorization: API_KEY,
             Accept: "application/json",
           },
           timeout: 10000, // Add timeout to prevent long wait
@@ -471,7 +471,7 @@ export class LicenseGateService {
         },
         {
           headers: {
-            Authorization: `Bearer ${API_KEY}`,
+            Authorization: API_KEY,
             "Content-Type": "application/json",
             Accept: "application/json",
           },
@@ -541,7 +541,7 @@ export class LicenseGateService {
         },
         {
           headers: {
-            Authorization: `Bearer ${API_KEY}`,
+            Authorization: API_KEY,
             "Content-Type": "application/json",
             Accept: "application/json",
           },
