@@ -357,7 +357,7 @@ export class LicenseGateService {
 
       if (response.status === 200) {
         const licenseDetails = response.data;
-        
+
         // Check if the license is active in the API
         if (!licenseDetails.active) {
           return { isValid: false, message: "License is inactive" };
@@ -383,25 +383,8 @@ export class LicenseGateService {
           createdAt: new Date(licenseDetails.createdAt).toISOString(),
         });
 
+        // Return valid with license details
         return { isValid: true, license: storedLicense };
-          (
-            await Promise.all(
-              Array.from(Array(1000).keys()).map((i) => storage.getLicense(i)),
-            )
-          ).filter(Boolean) as License[],
-        );
-
-        const license = licenses.find((l) => l.licenseKey === licenseKey);
-
-        // Return valid with local license if found
-        if (license) {
-          return { isValid: true, license };
-        }
-
-        return {
-          isValid: true,
-          message: "Valid license, but not found in local storage",
-        };
       } else {
         throw new Error("API validation failed");
       }
