@@ -357,6 +357,7 @@ export class LicenseGateService {
 
       if (response.status === 200) {
         const licenseDetails = response.data;
+        
         // Check if the license is active in the API
         if (!licenseDetails.active) {
           return { isValid: false, message: "License is inactive" };
@@ -364,13 +365,26 @@ export class LicenseGateService {
 
         // Check if the license has expired
         const now = new Date();
-        const expiryDate = apiLicense.expirationDate
-          ? new Date(apiLicense.expirationDate)
+        const expiryDate = licenseDetails.expirationDate
+          ? new Date(licenseDetails.expirationDate)
           : null;
 
         if (expiryDate && now > expiryDate) {
           return { isValid: false, message: "License has expired" };
         }
+
+        // Create or update license in local storage to match LicenseGate data
+        const license = await storage.createLicense({
+          userId: parseInt(licenseDetails.userId.toString()),
+          subscriptionId: null, // We'll update this if needed
+          licenseKey: licenseDetails.licenseKey,
+          isActive: licenseDetails.active,
+          expiryDate: new Date(licenseDetails.expirationDate),
+          createdAt: new Date(licenseDetails.createdAt).toISOString(),
+        });
+
+        // Return valid with license details
+        return { isValid: true, license };
 
         // If valid in API, find in our local storage
         const licenses = Array.from(
