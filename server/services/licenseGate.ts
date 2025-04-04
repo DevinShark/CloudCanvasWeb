@@ -239,14 +239,17 @@ export class LicenseGateService {
       const response = await axios.post(
         `${API_URL}/admin/licenses`,
         {
-          name: "CloudCanvas Trial",
-          licenseKey: trialLicenseKey,
-          notes: `${trialDays}-day trial license for CloudCanvas for ${user.email}`,
-          expirationDate: expiryDate.toISOString(),
-          licenseScope: "trial",
           active: true,
-          maxDays: trialDays,
-          features: ["basic", "trial"],
+          name: "CloudCanvas Trial",
+          notes: `${trialDays}-day trial license for CloudCanvas for ${user.email}`,
+          ipLimit: 1,
+          licenseScope: "",
+          expirationDate: expiryDate.toISOString(),
+          validationPoints: 0.0,
+          validationLimit: 0,
+          replenishAmount: 0,
+          replenishInterval: "TEN_SECONDS",
+          licenseKey: trialLicenseKey
         },
         {
           headers: {
