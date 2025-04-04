@@ -98,15 +98,14 @@ export class LicenseGateService {
           // Payload matching the working Python script
           active: true,
           name: fullName,
-          notes: notes,
-          ipLimit: 1, // Default based on successful test
-          licenseScope: licenseScope || "", // Ensure it's a string, default empty
+          notes: `Plan - ${subscription.plan.charAt(0).toUpperCase() + subscription.plan.slice(1)}\nEmail - ${user.email}`,
+          ipLimit: 1,
+          licenseScope: licenseScope || "",
           expirationDate: expiryDate.toISOString(),
-          validationPoints: 0.0, // Default based on successful test
-          validationLimit: 0, // Default based on successful test
-          replenishAmount: 0, // Default based on successful test
-          replenishInterval: "TEN_SECONDS", // Default based on successful test
-          licenseKey: licenseKey, // Provide the generated key
+          validationPoints: 0.0,
+          validationLimit: 0,
+          replenishAmount: 0,
+          replenishInterval: "TEN_SECONDS"
         },
         {
           headers: {
@@ -240,16 +239,15 @@ export class LicenseGateService {
         `${API_URL}/admin/licenses`,
         {
           active: true,
-          name: "CloudCanvas Trial",
-          notes: `${trialDays}-day trial license for CloudCanvas for ${user.email}`,
+          name: [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email,
+          notes: `Plan - Trial\nEmail - ${user.email}`,
           ipLimit: 1,
           licenseScope: "",
           expirationDate: expiryDate.toISOString(),
           validationPoints: 0.0,
           validationLimit: 0,
           replenishAmount: 0,
-          replenishInterval: "TEN_SECONDS",
-          licenseKey: trialLicenseKey
+          replenishInterval: "TEN_SECONDS"
         },
         {
           headers: {
