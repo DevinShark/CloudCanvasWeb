@@ -373,21 +373,17 @@ export class LicenseGateService {
           return { isValid: false, message: "License has expired" };
         }
 
-        // Create or update license in local storage to match LicenseGate data
-        const license = await storage.createLicense({
+        // Find or update license in local storage
+        const storedLicense = await storage.createLicense({
           userId: parseInt(licenseDetails.userId.toString()),
-          subscriptionId: null, // We'll update this if needed
+          subscriptionId: null,
           licenseKey: licenseDetails.licenseKey,
           isActive: licenseDetails.active,
           expiryDate: new Date(licenseDetails.expirationDate),
           createdAt: new Date(licenseDetails.createdAt).toISOString(),
         });
 
-        // Return valid with license details
-        return { isValid: true, license };
-
-        // If valid in API, find in our local storage
-        const licenses = Array.from(
+        return { isValid: true, license: storedLicense };
           (
             await Promise.all(
               Array.from(Array(1000).keys()).map((i) => storage.getLicense(i)),
