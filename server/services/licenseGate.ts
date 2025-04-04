@@ -341,25 +341,48 @@ export class LicenseGateService {
         throw new Error("LicenseGate API credentials are not configured.");
       }
 
-      // Try to validate with the LicenseGate API first
+      // First get all licenses to find the one we want
       const response = await axios.get(
-        `${API_URL}/admin/licenses/${licenseKey}`,
+        `${API_URL}/admin/licenses`,
         {
           headers: {
             Authorization: API_KEY,
             Accept: "application/json",
           },
-          timeout: 10000, // Add timeout to prevent long wait
+          timeout: 10000,
         },
       );
 
-      console.log("LicenseGate API validation response:", response.data);
+      console.log("Got licenses list from API");
+      
+      // Find our license in the list
+      const apiLicense = response.data.licenses?.find(
+        (lic: any) => lic.licenseKey === licenseKey
+      );
 
-      if (response.status === 200) {
-        const apiLicense = response.data;
+      if (!apiLicense) {
+        return { isValid: false, message: "License not found" };
+      }
 
+      // Now get the specific license details
+      const licenseResponse = await axios.get(
+        `${API_URL}/admin/licenses/${apiLicense.id}`,
+        {
+          headers: {
+            Authorization: API_KEY,
+            Accept: "application/json",
+          },
+          timeout: 10000,
+        },
+      );
+
+      const licenseDetails = licenseResponse.data;
+
+      console.log("LicenseGate API validation response:", licenseDetails);
+
+      if (licenseResponse.status === 200) {
         // Check if the license is active in the API
-        if (!apiLicense.active) {
+        if (!licenseDetails.active) {
           return { isValid: false, message: "License is inactive" };
         }
 
