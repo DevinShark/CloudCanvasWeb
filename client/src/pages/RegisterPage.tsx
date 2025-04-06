@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import RegisterForm from "@/components/auth/RegisterForm";
+import { getApiUrl } from "@/config";
 
 const RegisterPage = () => {
   const [location] = useLocation();
@@ -12,7 +13,7 @@ const RegisterPage = () => {
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        const res = await fetch("/api/auth/me", { credentials: "include" });
+        const res = await fetch(getApiUrl("/api/auth/me"), { credentials: "include" });
         if (res.ok) {
           window.location.href = "/dashboard";
         }

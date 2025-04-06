@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import { getApiUrl } from "@/config";
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -49,8 +50,8 @@ const Header = () => {
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-2">
             <img src={logoPath} alt="Cloud Canvas Logo" className="h-10 w-10" />
-            <Link href="/">
-              <a className="text-2xl font-bold text-primary">CloudCanvas</a>
+            <Link href="/" className="text-2xl font-bold text-primary">
+              CloudCanvas
             </Link>
           </div>
           
@@ -185,7 +186,7 @@ const Header = () => {
                   </Link>
                   <DropdownMenuItem
                     className="cursor-pointer"
-                    onClick={() => fetch("/api/auth/logout", { method: "POST" }).then(() => {
+                    onClick={() => fetch(getApiUrl("/api/auth/logout"), { method: "POST" }).then(() => {
                       window.location.href = "/";
                     })}
                   >
@@ -342,41 +343,20 @@ const Header = () => {
               >
                 Contact
               </a>
-              <div className="flex space-x-4 pt-4">
-                {user ? (
-                  <>
-                    <Link href="/dashboard">
-                      <Button variant="outline" className="text-primary border border-primary hover:bg-primary hover:text-white transition-colors duration-200" onClick={closeMobileMenu}>
-                        Dashboard
-                      </Button>
-                    </Link>
-                    <Button
-                      variant="destructive"
-                      onClick={() => {
-                        fetch("/api/auth/logout", { method: "POST" }).then(() => {
-                          window.location.href = "/";
-                          closeMobileMenu();
-                        });
-                      }}
-                    >
-                      Log Out
+              {!user && (
+                <>
+                  <Link href="/login">
+                    <Button variant="outline" className="w-full text-primary border border-primary hover:bg-primary hover:text-white transition-colors duration-200">
+                      Log In
                     </Button>
-                  </>
-                ) : (
-                  <>
-                    <Link href="/login">
-                      <Button variant="outline" className="text-primary border border-primary hover:bg-primary hover:text-white transition-colors duration-200" onClick={closeMobileMenu}>
-                        Log In
-                      </Button>
-                    </Link>
-                    <Link href="/#pricing">
-                      <Button className="bg-secondary text-white hover:bg-opacity-90 transition-colors duration-200" onClick={closeMobileMenu}>
-                        Free Trial
-                      </Button>
-                    </Link>
-                  </>
-                )}
-              </div>
+                  </Link>
+                  <Link href="/#pricing">
+                    <Button className="w-full bg-secondary text-white hover:bg-opacity-90 transition-colors duration-200">
+                      Free Trial
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
           </nav>
         )}

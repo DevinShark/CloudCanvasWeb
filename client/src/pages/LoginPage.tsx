@@ -6,6 +6,7 @@ import { CheckCircle } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import LoginForm from "@/components/auth/LoginForm";
+import { getApiUrl } from "@/config";
 
 const LoginPage = () => {
   const [location] = useLocation();
@@ -18,7 +19,7 @@ const LoginPage = () => {
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        const res = await fetch("/api/auth/me", { credentials: "include" });
+        const res = await fetch(getApiUrl("/api/auth/me"), { credentials: "include" });
         if (res.ok) {
           window.location.href = "/dashboard";
         }
