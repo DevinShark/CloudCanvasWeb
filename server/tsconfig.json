@@ -7,8 +7,12 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
-    "rootDir": "."
+    "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    }
   },
-  "include": ["scripts/**/*"],
-  "exclude": ["node_modules"]
+  "include": ["./**/*"],
+  "exclude": ["node_modules", "dist"]
 } 
