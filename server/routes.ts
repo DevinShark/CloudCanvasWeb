@@ -99,9 +99,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Protected routes that require authentication
   app.use((req, res, next) => {
+    // Allow public routes without authentication
     if (!req.path.startsWith('/api/') || 
-        (req.path.startsWith('/api/auth/') && req.method === 'POST') ||
-        (req.path.startsWith('/api/auth/verify-email/') && req.method === 'POST')) {
+        req.path.startsWith('/api/auth/register') ||
+        req.path.startsWith('/api/auth/login') ||
+        req.path.startsWith('/api/auth/verify-email/') ||
+        req.path.startsWith('/api/auth/forgot-password') ||
+        req.path.startsWith('/api/auth/reset-password')) {
       return next();
     }
     return requireAuth(req, res, next);
