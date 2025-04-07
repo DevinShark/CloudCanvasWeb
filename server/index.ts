@@ -39,12 +39,18 @@ const corsOptions = {
   },
   credentials: true, // Allow cookies to be sent
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-Requested-With', 'Accept'],
   exposedHeaders: ['Set-Cookie'],
   preflightContinue: false,
-  maxAge: 86400 // Cache preflight requests for 24 hours
+  maxAge: 86400, // Cache preflight requests for 24 hours
+  optionsSuccessStatus: 204 // Some legacy browsers (IE11, various SmartTVs) choke on 204
 };
+
+// Apply CORS middleware before any routes
 app.use(cors(corsOptions));
+
+// Handle preflight requests explicitly
+app.options('*', cors(corsOptions));
 
 // Store the application URL in process.env for use in emails
 const appProtocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
