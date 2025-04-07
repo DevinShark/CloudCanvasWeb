@@ -99,7 +99,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Protected routes that require authentication
   app.use((req, res, next) => {
-    if (!req.path.startsWith('/api/') || req.path.startsWith('/api/auth/') && req.method === 'POST') {
+    if (!req.path.startsWith('/api/') || 
+        (req.path.startsWith('/api/auth/') && req.method === 'POST') ||
+        (req.path.startsWith('/api/auth/verify-email/') && req.method === 'POST')) {
       return next();
     }
     return requireAuth(req, res, next);
@@ -123,6 +125,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/licenses/reactivate/:id", requireAuth, licenseController.reactivateLicense);
   app.get("/api/licenses/:id", requireAuth, licenseController.getLicense);
   app.get("/api/licenses/user", requireAuth, licenseController.getUserLicenses);
+  
+  // Add the new endpoint to fetch licenses directly from LicenseGate
+  app.get("/api/licenses/me", requireAuth, async (req, res, next) => {
+    try {
+      // Ensure user information is attached by requireAuth middleware
+      const user = req.user as any;
+      if (!user || !user.email) {
+        return res.status(401).json({ success: false, message: "User not authenticated or email missing." });
+      }
+
+      const { LicenseGateService } = require("./services/licenseGate");
+      const licenses = await LicenseGateService.getUserLicensesFromLicenseGate(user.email);
+      
+      res.status(200).json({ success: true, licenses });
+    } catch (error) {
+      console.error("Error fetching user licenses from LicenseGate:", error);
+      next(error);
+    }
+  });
   
   // Demo request route
   app.post("/api/demos/request", async (req, res) => {
