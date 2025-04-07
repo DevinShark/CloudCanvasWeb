@@ -1,6 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { log } from "./vite";
 import cors from "cors";
 import path from "path";
 import fs from "fs";
@@ -51,7 +50,7 @@ app.use((req, res, next) => {
     process.env.APP_HOST = req.headers.host;
     process.env.APP_PROTOCOL = req.protocol;
     process.env.APP_URL = `${req.protocol}://${req.headers.host}`;
-    log(`Detected application URL: ${process.env.APP_URL}`);
+    console.log(`[Server] Detected application URL: ${process.env.APP_URL}`);
   }
   
   const start = Date.now();
@@ -76,7 +75,7 @@ app.use((req, res, next) => {
         logLine = logLine.slice(0, 79) + "…";
       }
 
-      log(logLine);
+      console.log(`[Server] ${logLine}`);
     }
   });
 
@@ -88,44 +87,33 @@ registerRoutes(app);
 
 // Create the server
 const server = app.listen(port, () => {
-  log(`Server running at ${appProtocol}://${appHost}`);
+  console.log(`[Server] Server running at ${appProtocol}://${appHost}`);
 });
 
-// Moved serveStatic function definition here
-export function serveStatic(app: express.Express) {
-  const distPath = path.resolve(__dirname, "..", "dist", "public"); // Adjusted path
+// Serve static files in production
+if (isProduction) {
+  const distPath = path.resolve(__dirname, "..", "dist", "public");
 
   if (!fs.existsSync(distPath)) {
-    log(`Static directory not found: ${distPath}. Make sure to build the client first.`);
-    // In production, if static files don't exist, we might just serve the API root or handle differently.
-    // For now, let's add a basic handler to avoid crashing.
+    console.log(`[Server] Static directory not found: ${distPath}. Make sure to build the client first.`);
     app.get('/', (req: Request, res: Response) => {
       res.json({ message: 'CloudCanvas API Server. Frontend build not found.' });
     });
-    return; // Exit if directory doesn't exist
+  } else {
+    console.log(`[Server] Serving static files from: ${distPath}`);
+    app.use(express.static(distPath));
+    app.use("*", (_req: Request, res: Response) => {
+      res.sendFile(path.resolve(distPath, "index.html"));
+    });
   }
-  log(`Serving static files from: ${distPath}`);
-
-  app.use(express.static(distPath));
-
-  // fall through to index.html if the file doesn't exist
-  app.use("*", (_req: Request, res: Response) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
-  });
-}
-
-// Only serve frontend in development
-if (!isProduction) {
+} else {
   // Dynamically import setupVite only in development
   import("./vite").then(({ setupVite }) => {
     setupVite(app, server);
   }).catch(err => {
-    log(`Failed to setup Vite: ${err}`);
+    console.error(`[Server] Failed to setup Vite: ${err}`);
     process.exit(1);
   });
-} else {
-  // In production, serve static files
-  serveStatic(app);
 }
 
 // Error handling middleware
