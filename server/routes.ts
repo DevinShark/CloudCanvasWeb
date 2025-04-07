@@ -23,7 +23,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Configure session with memory store
   app.use(
     session({
-      cookie: { maxAge: 86400000 }, // 24 hours
+      cookie: { 
+        maxAge: 86400000, // 24 hours
+        secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+        sameSite: 'lax', // Allow cookies to be sent in cross-site requests
+        domain: process.env.NODE_ENV === 'production' ? '.cloudcanvas.wuaze.com' : undefined // Allow cookies to be sent to subdomains
+      },
       store: new SessionStore({
         checkPeriod: 86400000, // prune expired entries every 24h
       }),
