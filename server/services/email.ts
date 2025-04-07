@@ -6,27 +6,79 @@ import { formatPlanName, formatDate } from "../lib/utils";
 // Ensure required environment variables are set for email functionality
 if (!process.env.EMAIL_HOST || !process.env.EMAIL_PORT || !process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
   console.error("CRITICAL ERROR: Missing required email environment variables (EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASSWORD). Email functionality will likely fail.");
-  // Optionally, you could throw an error here to prevent the app from starting without proper email config
-  // throw new Error("Missing required email environment variables");
 }
 
+console.log("Email configuration:", {
+  host: process.env.EMAIL_HOST,
+  port: process.env.EMAIL_PORT,
+  user: process.env.EMAIL_USER,
+  secure: process.env.EMAIL_SECURE,
+  from: process.env.EMAIL_FROM
+});
+
+// Create reusable transporter
 const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST, // Rely solely on environment variable
-  port: parseInt(process.env.EMAIL_PORT || '587'), // Keep a default ONLY if parsing fails, but primary is env var
-  secure: process.env.EMAIL_SECURE === "true", // Rely solely on environment variable (true if string is "true")
+  host: process.env.EMAIL_HOST,
+  port: parseInt(process.env.EMAIL_PORT || '465'),
+  secure: process.env.EMAIL_SECURE === "true",
   auth: {
-    user: process.env.EMAIL_USER, // Rely solely on environment variable
-    pass: process.env.EMAIL_PASSWORD, // Rely solely on environment variable (ensure name matches Render)
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASSWORD,
   },
+  debug: true // Enable debug logging
+});
+
+// Test the email configuration
+console.log("Testing email configuration...");
+transporter.verify((error) => {
+  if (error) {
+    console.error("Email configuration error:", error);
+    console.error("Error details:", {
+      code: (error as any).code,
+      command: (error as any).command,
+      response: (error as any).response,
+      responseCode: (error as any).responseCode,
+      stack: error.stack
+    });
+  } else {
+    console.log("Email server is ready to send messages");
+    
+    // Test sending a simple email
+    console.log("Testing email sending...");
+    transporter.sendMail({
+      from: process.env.EMAIL_FROM || "Cloud Canvas <no-reply@cloudcanvas.com>",
+      to: process.env.EMAIL_USER,
+      subject: "Cloud Canvas Email Test",
+      text: "This is a test email to verify the email configuration."
+    }, (error, info) => {
+      if (error) {
+        console.error("Test email failed:", error);
+        console.error("Error details:", {
+          code: (error as any).code,
+          command: (error as any).command,
+          response: (error as any).response,
+          responseCode: (error as any).responseCode,
+          stack: error.stack
+        });
+      } else {
+        console.log("Test email sent successfully:", info);
+      }
+    });
+  }
 });
 
 // Helper function to generate application URLs that work in both development and production
 function getAppUrl(path: string = ''): string {
-  // Get the application URL from environment variable set in server/index.ts
-  // This is more reliable as it uses the actual request host when available
-  const baseUrl = process.env.APP_URL || "http://localhost:5000";
+  // For API routes, use the backend URL
+  if (path.startsWith('api/') || path.startsWith('/api/')) {
+    const baseUrl = process.env.API_URL || "https://cloudcanvas-backend.onrender.com";
+    const cleanBaseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return `${cleanBaseUrl}${cleanPath}`;
+  }
   
-  // Clean up the baseUrl and path for proper joining
+  // For client-side routes, use the frontend URL
+  const baseUrl = process.env.APP_URL || "https://cloudcanvas.wuaze.com";
   const cleanBaseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
   
@@ -38,30 +90,61 @@ function getAppUrl(path: string = ''): string {
 export class EmailService {
   // Send email verification
   static async sendVerificationEmail(user: User, verificationToken: string): Promise<void> {
-    // Use helper to generate verification URL for the client-side route
-    const verificationUrl = getAppUrl(`verify-email/${verificationToken}`);
-    
-    const mailOptions = {
-      from: process.env.EMAIL_FROM || "Cloud Canvas <no-reply@cloudcanvas.com>",
-      to: user.email,
-      subject: "Verify your email for Cloud Canvas",
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #2B3F6C; margin-bottom: 20px;">Welcome to Cloud Canvas!</h2>
-          <p>Thank you for registering. Please verify your email address by clicking the button below:</p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${verificationUrl}" style="background-color: #2B3F6C; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px; font-weight: bold;">Verify Email Address</a>
+    try {
+      console.log("Preparing verification email for:", user.email);
+      
+      // Use helper to generate verification URL for the API route
+      const verificationUrl = getAppUrl(`api/auth/verify-email/${verificationToken}`);
+      console.log("Verification URL generated:", verificationUrl);
+      
+      const mailOptions = {
+        from: process.env.EMAIL_FROM || "Cloud Canvas <no-reply@cloudcanvas.com>",
+        to: user.email,
+        subject: "Verify your email for Cloud Canvas",
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #2B3F6C; margin-bottom: 20px;">Welcome to Cloud Canvas!</h2>
+            <p>Thank you for registering. Please verify your email address by clicking the button below:</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${verificationUrl}" style="background-color: #2B3F6C; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px; font-weight: bold;">Verify Email Address</a>
+            </div>
+            <p>If the button doesn't work, you can also use this link:</p>
+            <p><a href="${verificationUrl}">${verificationUrl}</a></p>
+            <p>This link will expire in 24 hours.</p>
+            <hr style="border: 1px solid #eee; margin: 30px 0;" />
+            <p style="font-size: 12px; color: #666;">If you didn't create an account, you can safely ignore this email.</p>
           </div>
-          <p>If the button doesn't work, you can also use this link:</p>
-          <p><a href="${verificationUrl}">${verificationUrl}</a></p>
-          <p>This link will expire in 24 hours.</p>
-          <hr style="border: 1px solid #eee; margin: 30px 0;" />
-          <p style="font-size: 12px; color: #666;">If you didn't create an account, you can safely ignore this email.</p>
-        </div>
-      `,
-    };
-    
-    await transporter.sendMail(mailOptions);
+        `,
+      };
+      
+      console.log("Sending verification email...");
+      console.log("Mail options:", {
+        from: mailOptions.from,
+        to: mailOptions.to,
+        subject: mailOptions.subject
+      });
+      
+      const info = await transporter.sendMail(mailOptions);
+      console.log("Email sent successfully:", {
+        messageId: info.messageId,
+        response: info.response,
+        previewUrl: nodemailer.getTestMessageUrl(info)
+      });
+    } catch (error) {
+      console.error("Failed to send verification email:", error);
+      if (error instanceof Error) {
+        console.error("Error details:", {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+          code: (error as any).code,
+          command: (error as any).command,
+          response: (error as any).response,
+          responseCode: (error as any).responseCode
+        });
+      }
+      throw error; // Re-throw to handle in the registration process
+    }
   }
   
   // Send password reset email
