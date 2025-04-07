@@ -3,6 +3,12 @@ import { registerRoutes } from "./routes";
 import cors from "cors";
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+
+// Get the directory path in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // We'll determine the environment for our email URLs but won't change NODE_ENV
 // This helps us avoid issues with the Vite development server
