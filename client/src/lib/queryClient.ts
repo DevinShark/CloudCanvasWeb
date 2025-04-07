@@ -17,12 +17,27 @@ export async function apiRequest(
   try {
     const res = await fetch(getApiUrl(url), {
       method,
-      headers: data ? { "Content-Type": "application/json" } : {},
+      headers: {
+        ...(data ? { "Content-Type": "application/json" } : {}),
+        "Accept": "application/json",
+      },
       body: data ? JSON.stringify(data) : undefined,
       credentials: "include",
+      mode: "cors",
     });
 
-    await throwIfResNotOk(res);
+    if (!res.ok) {
+      const text = await res.text();
+      let errorMessage = `${res.status}: ${res.statusText}`;
+      try {
+        const errorData = JSON.parse(text);
+        errorMessage = errorData.message || errorMessage;
+      } catch {
+        // If parsing fails, use the text as is
+      }
+      throw new Error(errorMessage);
+    }
+
     return res;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";

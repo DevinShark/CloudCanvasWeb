@@ -300,25 +300,25 @@ export const resetPassword = async (req: Request, res: Response) => {
 // Get current user
 export const getCurrentUser = async (req: Request, res: Response) => {
   try {
-    // User is already attached to req by passport
     if (!req.user) {
       return res.status(401).json({
         success: false,
-        message: "Unauthorized"
+        message: "Unauthorized access. Please log in."
       });
     }
 
-    // Return user (without password)
-    const { password, ...userResponse } = req.user as any;
-    res.status(200).json({
+    // Return user data without sensitive information
+    const user = req.user as any;
+    const { password, ...userResponse } = user;
+    return res.status(200).json({
       success: true,
       user: userResponse
     });
   } catch (error) {
     console.error("Get current user error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: "Server error"
+      message: "Server error while fetching user data"
     });
   }
 };

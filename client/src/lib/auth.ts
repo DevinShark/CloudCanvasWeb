@@ -113,10 +113,14 @@ export async function resetPassword(token: string, newPassword: string): Promise
 export async function getCurrentUser(): Promise<any> {
   try {
     const response = await apiRequest("GET", "/api/auth/me");
-    return response.json();
+    const data = await response.json();
+    if (!data.success) {
+      throw new Error(data.message || "Failed to get current user");
+    }
+    return data.user;
   } catch (error) {
     console.error("Get current user error:", error);
-    return null;
+    throw error;
   }
 }
 
