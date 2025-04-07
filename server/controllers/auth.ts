@@ -127,12 +127,23 @@ export const login = (req: Request, res: Response) => {
         });
       }
 
-      // Return success response (don't include password)
-      const { password, ...userResponse } = user;
-      return res.status(200).json({
-        success: true,
-        message: "Login successful",
-        user: userResponse
+      // Save the session
+      req.session.save((err) => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.status(500).json({
+            success: false,
+            message: "Server error during login"
+          });
+        }
+
+        // Return success response (don't include password)
+        const { password, ...userResponse } = user;
+        return res.status(200).json({
+          success: true,
+          message: "Login successful",
+          user: userResponse
+        });
       });
     });
   })(req, res);

@@ -2,7 +2,23 @@ import { Request, Response, NextFunction } from "express";
 
 // Middleware to check if user is authenticated
 export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+  // Check if session exists
+  if (!req.session) {
+    return res.status(401).json({
+      success: false,
+      message: "No session found. Please log in."
+    });
+  }
+
+  // Check if user is authenticated
   if (req.isAuthenticated()) {
+    // Ensure user object exists
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "User session invalid. Please log in."
+      });
+    }
     return next();
   }
   

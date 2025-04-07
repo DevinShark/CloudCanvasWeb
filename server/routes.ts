@@ -24,7 +24,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(
     session({
       secret: process.env.SESSION_SECRET || "your-secret-key",
-      resave: false,
+      resave: true,
       saveUninitialized: false,
       cookie: {
         secure: process.env.NODE_ENV === "production", // Use secure cookies in production
@@ -35,6 +35,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       },
       name: "sessionId", // Explicitly set the cookie name
       store: new MemoryStore(),
+      rolling: true // Enable rolling sessions
     })
   );
 
