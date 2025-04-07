@@ -26,17 +26,21 @@ export async function registerUser(userData: InsertUser): Promise<void> {
 /**
  * Log in a user
  */
-export async function loginUser(credentials: LoginData): Promise<any> {
+export async function loginUser(credentials: LoginData): Promise<User> {
   try {
     const response = await apiRequest("POST", "/api/auth/login", credentials);
     const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error(data.message || "Login failed");
+    }
     
     toast({
       title: "Login successful",
       description: "Welcome back!",
     });
     
-    return data;
+    return data.user;
   } catch (error) {
     console.error("Login error:", error);
     throw error;

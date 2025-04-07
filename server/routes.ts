@@ -27,15 +27,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       resave: true,
       saveUninitialized: false,
       cookie: {
-        secure: process.env.NODE_ENV === "production", // Use secure cookies in production
+        secure: process.env.NODE_ENV === "production",
         httpOnly: true,
-        sameSite: "lax", // Changed from "none" to "lax" for better security
+        sameSite: "lax",
+        path: "/",
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
-        path: "/"
       },
-      name: "sessionId", // Explicitly set the cookie name
-      store: new MemoryStore(),
-      rolling: true // Enable rolling sessions
+      name: "sessionId",
+      rolling: true,
     })
   );
 
