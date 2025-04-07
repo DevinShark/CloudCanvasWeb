@@ -29,9 +29,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       cookie: {
         secure: process.env.NODE_ENV === "production", // Use secure cookies in production
         httpOnly: true,
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        sameSite: "lax", // Changed from "none" to "lax" for better security
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
-        domain: process.env.NODE_ENV === "production" ? "cloudcanvas.wuaze.com" : undefined,
         path: "/"
       },
       name: "sessionId", // Explicitly set the cookie name

@@ -39,9 +39,10 @@ const corsOptions = {
   },
   credentials: true, // Allow cookies to be sent
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-Requested-With'],
   exposedHeaders: ['Set-Cookie'],
-  preflightContinue: false
+  preflightContinue: false,
+  maxAge: 86400 // Cache preflight requests for 24 hours
 };
 app.use(cors(corsOptions));
 
