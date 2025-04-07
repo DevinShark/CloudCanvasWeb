@@ -4,9 +4,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Download, FileDown } from "lucide-react";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, fetchUserLicenses, LicenseDetails } from "@/lib/auth";
 import { getUserSubscription } from "@/lib/paypal";
-import { getUserLicenses, generateTrialLicense } from "@/lib/licenseGate";
+import { generateTrialLicense } from "@/lib/licenseGate";
 import { formatDate } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import LicenseCard from "@/components/dashboard/LicenseCard";
@@ -18,29 +18,31 @@ const UserDashboard = () => {
   const queryClient = useQueryClient();
   
   const { data: user, isLoading: isLoadingUser } = useQuery({
-    queryKey: ["/api/auth/me"],
+    queryKey: ["currentUser"],
     queryFn: getCurrentUser,
   });
   
   const { data: subscription, isLoading: isLoadingSubscription } = useQuery({
-    queryKey: ["/api/subscriptions/user"],
+    queryKey: ["userSubscription", user?.id],
     queryFn: getUserSubscription,
     enabled: !!user,
   });
   
-  const { data: licenses, isLoading: isLoadingLicenses } = useQuery({
-    queryKey: ["/api/licenses/user"],
-    queryFn: getUserLicenses,
+  const { data: licenses, isLoading: isLoadingLicenses } = useQuery<LicenseDetails[], Error>({
+    queryKey: ["userLicenses", user?.id],
+    queryFn: fetchUserLicenses,
     enabled: !!user,
   });
   
-  // Handle trial license generation
   const handleGenerateTrial = async () => {
     try {
       setIsGeneratingTrial(true);
       await generateTrialLicense();
-      // Invalidate licenses query to refresh the data
-      await queryClient.invalidateQueries({ queryKey: ["/api/licenses/user"] });
+      await queryClient.invalidateQueries({ queryKey: ["userLicenses", user?.id] });
+      toast({
+        title: "Success",
+        description: "Trial license generated successfully!",
+      });
     } catch (error) {
       console.error("Failed to generate trial license:", error);
       toast({
@@ -93,7 +95,7 @@ const UserDashboard = () => {
               {licenses && licenses.length > 0 ? (
                 <div className="grid gap-6">
                   {licenses.map((license) => (
-                    <LicenseCard key={license.id} license={license} />
+                    <LicenseCard key={license.licenseKey} license={license} />
                   ))}
                 </div>
               ) : (
@@ -113,7 +115,6 @@ const UserDashboard = () => {
             </CardContent>
           </Card>
           
-          {/* Only show downloads section if the user has at least one active license */}
           {licenses && licenses.length > 0 && licenses.some(license => license.isActive) ? (
             <Card>
               <CardHeader>

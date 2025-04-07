@@ -6,10 +6,32 @@ import { getSubscriptionEndDate } from "../lib/utils";
 
 // LicenseGate API credentials
 const API_KEY = process.env.LICENSEGATE_API_KEY;
-const USER_ID = process.env.LICENSEGATE_USER_ID;
 const API_URL = (process.env.LICENSEGATE_API_URL || "https://api.licensegate.io").replace(/\/+$/, ''); // Remove trailing slashes
 
+if (!API_KEY) {
+  console.error("LICENSEGATE_API_KEY is not set in environment variables");
+}
+
+if (!API_URL) {
+  console.error("LICENSEGATE_API_URL is not set in environment variables");
+}
+
+// Define a type for the relevant license data we want to send to the frontend
+// Modifying to match exactly what the frontend expects
+export interface LicenseDetails {
+  id: number;
+  licenseKey: string;
+  isActive: boolean;
+  expiryDate: string; // Must be string, not null
+  subscriptionId: number | null;
+}
+
 export class LicenseGateService {
+  private static readonly headers = {
+    'Authorization': `Bearer ${API_KEY}`,
+    'Content-Type': 'application/json'
+  };
+
   // Generate a unique license key locally (backup if API fails)
   static generateLicenseKey(length: number = 32): string {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -204,124 +226,153 @@ export class LicenseGateService {
     user: User,
     trialDays: number = 7,
   ): Promise<License> {
-    // Format the user's full name
-    const fullName =
-      [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email;
-
-    // Set trial expiration date
-    const startDate = new Date();
-    const expiryDate = new Date(startDate);
-    expiryDate.setDate(expiryDate.getDate() + trialDays);
-
-    // Generate a unique license key for trial with CC-TRIAL prefix
-    const uniqueId = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit number
-    let trialLicenseKey = `CC-TRIAL-${uniqueId}`;
-
-    console.log("Creating trial license for user:", {
-      fullName,
-      email: user.email,
-      licenseKey: trialLicenseKey,
-      expiryDate: expiryDate.toISOString(),
-    });
-
-    // Check if we have valid API credentials
-    if (!API_KEY || !API_URL) {
-      console.error("Missing API credentials for LicenseGate");
-      throw new Error(
-        "LicenseGate API credentials are not configured. Contact administrator.",
-      );
-    }
-
     try {
-      console.log("Connecting to LicenseGate API...");
-      // Format according to CloudCanvas requirements
-      const response = await axios.post(
-        `${API_URL}/admin/licenses`,
-        {
-          active: true,
-          name: [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email,
-          notes: `Plan - Trial\nEmail - ${user.email}`,
-          ipLimit: 1,
-          licenseScope: "",
-          expirationDate: expiryDate.toISOString(),
-          validationPoints: 0.0,
-          validationLimit: 0,
-          replenishAmount: 0,
-          replenishInterval: "TEN_SECONDS"
-        },
-        {
-          headers: {
-            Authorization: API_KEY,
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          timeout: 10000, // Add timeout to prevent long wait
-        },
+      // Check if user already has an active trial license in LicenseGate
+      const existingLicenses = await this.getUserLicensesFromLicenseGate(user.email);
+      const hasTrialLicense = existingLicenses.some(license => 
+        license.isActive && 
+        (license.subscriptionId === null || license.subscriptionId === 0)
       );
 
-      console.log("LicenseGate API trial response:", response.data);
-
-      if (response.status === 201 || response.status === 200) {
-        // If successful, use the key from the response if available
-        if (response.data && response.data.licenseKey) {
-          trialLicenseKey = response.data.licenseKey;
+      if (hasTrialLicense) {
+        console.log(`User ${user.email} already has an active trial license, returning existing license`);
+        // Get the first active trial license
+        const existingTrial = existingLicenses.find(l => l.isActive && (l.subscriptionId === null || l.subscriptionId === 0));
+        if (existingTrial) {
+          // Return existing trial license info from database
+          const existingLicense = await storage.getLicense(existingTrial.id);
+          if (existingLicense) {
+            console.log("Found existing license in database:", existingLicense.licenseKey);
+            return existingLicense;
+          }
         }
-        console.log(
-          "License successfully created in LicenseGate with key:",
-          trialLicenseKey,
+      }
+
+      // Format the user's full name
+      const fullName =
+        [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email;
+
+      // Set trial expiration date
+      const startDate = new Date();
+      const expiryDate = new Date(startDate);
+      expiryDate.setDate(expiryDate.getDate() + trialDays);
+
+      // Generate a unique license key for trial with CC-TRIAL prefix
+      const uniqueId = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit number
+      let trialLicenseKey = `CC-TRIAL-${uniqueId}`;
+
+      console.log("Creating trial license for user:", {
+        fullName,
+        email: user.email,
+        licenseKey: trialLicenseKey,
+        expiryDate: expiryDate.toISOString(),
+      });
+
+      // Check if we have valid API credentials
+      if (!API_KEY || !API_URL) {
+        console.error("Missing API credentials for LicenseGate");
+        throw new Error(
+          "LicenseGate API credentials are not configured. Contact administrator.",
+        );
+      }
+
+      try {
+        console.log("Connecting to LicenseGate API...");
+        // Format according to CloudCanvas requirements
+        const response = await axios.post(
+          `${API_URL}/admin/licenses`,
+          {
+            active: true,
+            name: [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email,
+            notes: `Plan - Trial\nEmail - ${user.email}`,
+            ipLimit: 1,
+            licenseScope: "",
+            expirationDate: expiryDate.toISOString(),
+            validationPoints: 0.0,
+            validationLimit: 0,
+            replenishAmount: 0,
+            replenishInterval: "TEN_SECONDS"
+          },
+          {
+            headers: {
+              Authorization: API_KEY,
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+            timeout: 10000, // Add timeout to prevent long wait
+          },
         );
 
-        // Only create the license in our database after successful creation in LicenseGate
-        try {
-          // Create the license in local storage
-          const license = await storage.createLicense({
-            userId: user.id,
-            subscriptionId: null, // Null for trial licenses
-            licenseKey: trialLicenseKey,
-            isActive: true,
-            expiryDate,
-            createdAt: startDate.toISOString(),
-          });
+        console.log("LicenseGate API trial response:", response.data);
 
+        if (response.status === 201 || response.status === 200) {
+          // If successful, use the key from the response if available
+          if (response.data && response.data.licenseKey) {
+            trialLicenseKey = response.data.licenseKey;
+          }
           console.log(
-            "Trial license created successfully in database:",
-            license,
+            "License successfully created in LicenseGate with key:",
+            trialLicenseKey,
           );
-          return license;
-        } catch (storageError) {
-          console.error(
-            "Error creating license in local storage:",
-            storageError,
-          );
+
+          // Only create the license in our database after successful creation in LicenseGate
+          try {
+            // Create the license in local storage
+            const license = await storage.createLicense({
+              userId: user.id,
+              subscriptionId: null, // Null for trial licenses
+              licenseKey: trialLicenseKey,
+              isActive: true,
+              expiryDate,
+              createdAt: startDate.toISOString(),
+            });
+
+            console.log(
+              "Trial license created successfully in database:",
+              license,
+            );
+            return license;
+          } catch (storageError) {
+            console.error(
+              "Error creating license in local storage:",
+              storageError,
+            );
+            throw new Error(
+              "License was created in LicenseGate but failed to save in database. Please contact support.",
+            );
+          }
+        } else {
           throw new Error(
-            "License was created in LicenseGate but failed to save in database. Please contact support.",
+            `Unexpected response from LicenseGate API: ${response.statusText}`,
           );
         }
-      } else {
+      } catch (err) {
+        const error = err as any;
+        console.error("Error connecting to LicenseGate API:", error);
+
+        if (error.response) {
+          console.error("LicenseGate API error response:", {
+            status: error.response.status,
+            data: error.response.data,
+          });
+
+          if (error.response.status === 401) {
+            throw new Error(
+              "Authentication failed with LicenseGate. Invalid API credentials.",
+            );
+          }
+        }
+
+        // Don't create license if LicenseGate call fails
         throw new Error(
-          `Unexpected response from LicenseGate API: ${response.statusText}`,
+          "Failed to generate license in LicenseGate. Please try again later.",
         );
       }
     } catch (err) {
       const error = err as any;
-      console.error("Error connecting to LicenseGate API:", error);
-
-      if (error.response) {
-        console.error("LicenseGate API error response:", {
-          status: error.response.status,
-          data: error.response.data,
-        });
-
-        if (error.response.status === 401) {
-          throw new Error(
-            "Authentication failed with LicenseGate. Invalid API credentials.",
-          );
-        }
-      }
-
-      // Don't create license if LicenseGate call fails
+      console.error("Error creating trial license:", error);
       throw new Error(
-        "Failed to generate license in LicenseGate. Please try again later.",
+        "Failed to create trial license. Please try again later.",
       );
     }
   }
@@ -567,5 +618,38 @@ export class LicenseGateService {
       expiryDate: newExpiryDate,
       isActive: true,
     });
+  }
+
+  // Fetch licenses from LicenseGate and filter for a specific user by email in notes
+  static async getUserLicensesFromLicenseGate(userEmail: string): Promise<LicenseDetails[]> {
+    try {
+      const response = await axios.get(
+        `${API_URL}/admin/licenses/email/${encodeURIComponent(userEmail)}`,
+        { headers: this.headers }
+      );
+
+      if (!response.data || !Array.isArray(response.data)) {
+        console.error('Invalid response format from LicenseGate:', response.data);
+        return [];
+      }
+
+      return response.data.map((license: any) => ({
+        id: license.id,
+        licenseKey: license.license_key,
+        isActive: license.is_active,
+        expiryDate: license.expiry_date,
+        subscriptionId: license.subscription_id
+      }));
+    } catch (error) {
+      console.error('Error fetching user licenses from LicenseGate:', error);
+      if (axios.isAxiosError(error)) {
+        console.error('Axios error details:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          headers: error.response?.headers
+        });
+      }
+      throw new Error('Failed to fetch user licenses');
+    }
   }
 }

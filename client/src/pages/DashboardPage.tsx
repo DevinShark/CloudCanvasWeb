@@ -11,14 +11,15 @@ const DashboardPage = () => {
   
   // Check if user is authenticated
   const { data: user, isLoading, isError } = useQuery({
-    queryKey: ["/api/auth/me"],
+    queryKey: ["currentUser"],
     queryFn: getCurrentUser,
     retry: 1,
   });
   
-  // Redirect to login if not authenticated
+  // Redirect to login if user fetch fails
   useEffect(() => {
     if (isError) {
+      console.log("User fetch error, redirecting to login...");
       navigate("/login");
     }
   }, [isError, navigate]);

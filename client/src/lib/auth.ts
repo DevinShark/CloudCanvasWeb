@@ -1,6 +1,11 @@
 import { apiRequest } from "@/lib/queryClient";
-import { InsertUser, LoginData } from "@shared/schema";
+import { InsertUser, LoginData, User } from "@shared/schema";
 import { toast } from "@/hooks/use-toast";
+import axios from 'axios';
+import { LicenseDetails } from "@/types";
+
+// Re-export the LicenseDetails type
+export type { LicenseDetails };
 
 /**
  * Register a new user
@@ -130,3 +135,24 @@ export async function updateUserProfile(userData: Partial<InsertUser>): Promise<
     throw error;
   }
 }
+
+// --- NEW FUNCTION --- 
+export const fetchUserLicenses = async (): Promise<LicenseDetails[]> => {
+  try {
+    // The backend route is /api/licenses/me
+    const response = await axios.get<{ success: boolean; licenses: LicenseDetails[] }>("/api/licenses/me");
+    
+    if (response.data.success) {
+      return response.data.licenses;
+    } else {
+      // Handle potential backend success:false scenarios if needed
+      console.error("Backend indicated failure fetching licenses", response.data);
+      return []; // Or throw an error
+    }
+  } catch (error: any) {
+    console.error("Error fetching user licenses:", error);
+    // Re-throw the error so react-query can handle it (isLoading, isError)
+    throw error;
+  }
+};
+// --- END NEW FUNCTION --- 

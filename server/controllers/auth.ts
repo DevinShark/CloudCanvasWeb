@@ -9,9 +9,12 @@ import { EmailService } from "../services/email";
 // Register a new user
 export const register = async (req: Request, res: Response) => {
   try {
+    console.log("Registration request received:", { body: req.body });
+    
     // Validate request body
     const validationResult = insertUserSchema.safeParse(req.body);
     if (!validationResult.success) {
+      console.log("Validation failed:", validationResult.error.errors);
       return res.status(400).json({
         success: false,
         message: "Validation error",
@@ -20,10 +23,12 @@ export const register = async (req: Request, res: Response) => {
     }
 
     const { email, password, firstName, lastName, company } = validationResult.data;
+    console.log("Validated registration data:", { email, firstName, lastName, company });
 
     // Check if user already exists
     const existingUser = await storage.getUserByEmail(email);
     if (existingUser) {
+      console.log("User already exists:", email);
       return res.status(400).json({
         success: false,
         message: "User with this email already exists"
@@ -33,11 +38,14 @@ export const register = async (req: Request, res: Response) => {
     // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
+    console.log("Password hashed successfully");
 
     // Generate verification token
     const verificationToken = crypto.randomBytes(32).toString("hex");
+    console.log("Verification token generated");
 
     // Create user
+    console.log("Creating user in storage...");
     const user = await storage.createUser({
       email,
       password: hashedPassword,
@@ -45,12 +53,22 @@ export const register = async (req: Request, res: Response) => {
       lastName,
       company
     });
+    console.log("User created successfully:", { id: user.id, email: user.email });
 
     // Add verification token
+    console.log("Adding verification token...");
     await storage.updateUserVerificationToken(user.id, verificationToken);
+    console.log("Verification token added");
 
     // Send verification email
-    await EmailService.sendVerificationEmail(user, verificationToken);
+    console.log("Sending verification email...");
+    try {
+      await EmailService.sendVerificationEmail(user, verificationToken);
+      console.log("Verification email sent successfully");
+    } catch (emailError) {
+      console.error("Failed to send verification email:", emailError);
+      // Don't fail registration if email fails
+    }
 
     // Return success response (don't include password)
     const { password: _, ...userResponse } = user;
@@ -61,9 +79,13 @@ export const register = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Registration error:", error);
+    if (error instanceof Error) {
+      console.error("Error stack:", error.stack);
+    }
     res.status(500).json({
       success: false,
-      message: "Server error during registration"
+      message: "Server error during registration",
+      error: process.env.NODE_ENV === 'development' ? error instanceof Error ? error.message : String(error) : undefined
     });
   }
 };

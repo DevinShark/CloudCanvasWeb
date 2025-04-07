@@ -57,38 +57,55 @@ export class MemStorage implements IStorage {
     this.licenses = new Map();
     this.demoRequests = new Map();
     this.contactMessages = new Map();
+    console.log("In-memory storage initialized");
   }
 
   // User methods
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    try {
+      return this.users.get(id);
+    } catch (error) {
+      console.error("Error getting user:", error);
+      return undefined;
+    }
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.email.toLowerCase() === email.toLowerCase()
-    );
+    try {
+      return Array.from(this.users.values()).find(
+        (user) => user.email.toLowerCase() === email.toLowerCase()
+      );
+    } catch (error) {
+      console.error("Error getting user by email:", error);
+      return undefined;
+    }
   }
 
   async createUser(userData: InsertUser): Promise<User> {
-    const id = this.userIdCounter++;
-    const now = new Date();
+    try {
+      const id = this.userIdCounter++;
+      const now = new Date();
 
-    const user: User = {
-      id,
-      email: userData.email,
-      password: userData.password,
-      firstName: userData.firstName || null,
-      lastName: userData.lastName || null,
-      company: userData.company || null,
-      isVerified: false,
-      verificationToken: null,
-      resetPasswordToken: null,
-      createdAt: now
-    };
+      const user: User = {
+        id,
+        email: userData.email,
+        password: userData.password,
+        firstName: userData.firstName || null,
+        lastName: userData.lastName || null,
+        company: userData.company || null,
+        isVerified: false,
+        verificationToken: null,
+        resetPasswordToken: null,
+        createdAt: now
+      };
 
-    this.users.set(id, user);
-    return user;
+      this.users.set(id, user);
+      console.log("User created successfully:", { id, email: user.email });
+      return user;
+    } catch (error) {
+      console.error("Error creating user:", error);
+      throw new Error("Failed to create user in storage");
+    }
   }
 
   async updateUser(id: number, userData: Partial<InsertUser>): Promise<User | undefined> {
@@ -163,10 +180,18 @@ export class MemStorage implements IStorage {
 
   async createSubscription(subscriptionData: InsertSubscription): Promise<Subscription> {
     const id = this.subscriptionIdCounter++;
+    const now = new Date();
 
     const subscription: Subscription = {
       id,
-      ...subscriptionData
+      userId: subscriptionData.userId,
+      paypalSubscriptionId: subscriptionData.paypalSubscriptionId,
+      plan: subscriptionData.plan,
+      status: subscriptionData.status,
+      billingType: subscriptionData.billingType,
+      startDate: subscriptionData.startDate,
+      endDate: subscriptionData.endDate || null,
+      createdAt: now
     };
 
     this.subscriptions.set(id, subscription);
@@ -197,7 +222,7 @@ export class MemStorage implements IStorage {
         Array.from(Array(1000).keys())
           .map((i) => this.getLicense(i))
       );
-      return licenses.filter((l): l is License => l !== null && l.userId === userId);
+      return licenses.filter((l): l is License => l !== undefined && l.userId === userId);
     } catch (error) {
       console.error("Error getting user licenses:", error);
       return [];
@@ -206,10 +231,16 @@ export class MemStorage implements IStorage {
 
   async createLicense(licenseData: InsertLicense): Promise<License> {
     const id = this.licenseIdCounter++;
+    const now = new Date();
 
     const license: License = {
       id,
-      ...licenseData
+      userId: licenseData.userId,
+      subscriptionId: licenseData.subscriptionId || null,
+      licenseKey: licenseData.licenseKey,
+      isActive: licenseData.isActive ?? true,
+      expiryDate: licenseData.expiryDate,
+      createdAt: licenseData.createdAt ? new Date(licenseData.createdAt) : now
     };
 
     this.licenses.set(id, license);
@@ -222,7 +253,9 @@ export class MemStorage implements IStorage {
 
     const updatedLicense: License = {
       ...license,
-      ...data
+      ...data,
+      createdAt: license.createdAt, // Keep the original createdAt
+      id: license.id // Keep the original id
     };
 
     this.licenses.set(id, updatedLicense);
@@ -237,6 +270,7 @@ export class MemStorage implements IStorage {
     const demoRequest: DemoRequest = {
       id,
       ...demoRequestData,
+      message: demoRequestData.message || null,
       status: "pending",
       createdAt: now
     };
@@ -272,3 +306,4 @@ export class MemStorage implements IStorage {
 
 // Create and export a singleton instance of storage
 export const storage = new MemStorage();
+console.log("Storage singleton instance created");
