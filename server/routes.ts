@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import session from "express-session";
-import MemoryStore from "memorystore";
+import { MemoryStore } from "express-session";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import bcrypt from "bcryptjs";
@@ -18,23 +18,22 @@ import { requireAuth } from "./middleware/auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Memory store for session
-  const SessionStore = MemoryStore(session);
+  const SessionStore = MemoryStore;
   
   // Configure session with memory store
   app.use(
     session({
-      cookie: { 
-        maxAge: 86400000, // 24 hours
-        secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
-        sameSite: 'lax', // Allow cookies to be sent in cross-site requests
-        domain: process.env.NODE_ENV === 'production' ? '.cloudcanvas.wuaze.com' : undefined // Allow cookies to be sent to subdomains
-      },
-      store: new SessionStore({
-        checkPeriod: 86400000, // prune expired entries every 24h
-      }),
+      secret: process.env.SESSION_SECRET || "your-secret-key",
       resave: false,
       saveUninitialized: false,
-      secret: process.env.SESSION_SECRET || "cloud-canvas-secret",
+      cookie: {
+        secure: process.env.NODE_ENV === "production", // Use secure cookies in production
+        httpOnly: true,
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        domain: process.env.NODE_ENV === "production" ? ".cloudcanvas.wuaze.com" : undefined
+      },
+      store: new MemoryStore(),
     })
   );
 
