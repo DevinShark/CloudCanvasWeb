@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { loginUser } from "@/lib/auth";
 import { loginSchema } from "@shared/schema";
+import { toast } from "@/hooks/use-toast";
 
 const LoginForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,6 +36,11 @@ const LoginForm = () => {
       setLocation("/dashboard");
     } catch (error) {
       console.error("Login error:", error);
+      toast({
+        title: "Login failed",
+        description: error instanceof Error ? error.message : "An error occurred during login",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }

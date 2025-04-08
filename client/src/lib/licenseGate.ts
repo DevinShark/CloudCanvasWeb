@@ -113,10 +113,8 @@ export async function generateTrialLicense(): Promise<void> {
       description: "Your 7-day trial license has been generated and sent to your email.",
     });
     
-    // Refresh the page to show the new license
-    setTimeout(() => {
-      window.location.reload();
-    }, 1500);
+    // Instead of reloading the page, navigate to the dashboard
+    window.location.href = "/dashboard";
   } catch (error: any) {
     console.error("Generate trial license error:", error);
     
