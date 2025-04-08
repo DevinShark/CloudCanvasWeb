@@ -623,33 +623,49 @@ export class LicenseGateService {
   // Fetch licenses from LicenseGate and filter for a specific user by email in notes
   static async getUserLicensesFromLicenseGate(userEmail: string): Promise<LicenseDetails[]> {
     try {
+      console.log("Fetching licenses for user:", userEmail);
+      
+      // Check if we have valid API credentials
+      if (!API_KEY || !API_URL) {
+        console.error("Missing API credentials for LicenseGate");
+        throw new Error("LicenseGate API credentials are not configured");
+      }
+
+      // Use the correct endpoint for fetching licenses by email
       const response = await axios.get(
-        `${API_URL}/admin/licenses/email/${encodeURIComponent(userEmail)}`,
-        { headers: this.headers }
+        `${API_URL}/admin/licenses?email=${encodeURIComponent(userEmail)}`,
+        {
+          headers: {
+            Authorization: API_KEY,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          timeout: 10000,
+        }
       );
 
-      if (!response.data || !Array.isArray(response.data)) {
-        console.error('Invalid response format from LicenseGate:', response.data);
-        return [];
+      console.log("LicenseGate API response:", response.data);
+
+      if (response.status === 200 && Array.isArray(response.data)) {
+        return response.data.map((license: any) => ({
+          id: license.id,
+          licenseKey: license.licenseKey,
+          isActive: license.active,
+          expiryDate: license.expirationDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Default to 7 days from now if not set
+          subscriptionId: null // Trial licenses don't have subscription IDs
+        }));
       }
 
-      return response.data.map((license: any) => ({
-        id: license.id,
-        licenseKey: license.license_key,
-        isActive: license.is_active,
-        expiryDate: license.expiry_date,
-        subscriptionId: license.subscription_id
-      }));
+      throw new Error("Invalid response from LicenseGate API");
     } catch (error) {
-      console.error('Error fetching user licenses from LicenseGate:', error);
-      if (axios.isAxiosError(error)) {
-        console.error('Axios error details:', {
-          status: error.response?.status,
-          data: error.response?.data,
-          headers: error.response?.headers
+      console.error("Error fetching user licenses from LicenseGate:", error);
+      if ((error as any).response) {
+        console.error("LicenseGate API error response:", {
+          status: (error as any).response.status,
+          data: (error as any).response.data,
         });
       }
-      throw new Error('Failed to fetch user licenses');
+      throw new Error("Failed to fetch user licenses");
     }
   }
 }

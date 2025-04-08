@@ -114,7 +114,7 @@ export async function resetPassword(token: string, newPassword: string): Promise
 /**
  * Get current user
  */
-export async function getCurrentUser(): Promise<any> {
+export async function getCurrentUser(): Promise<User> {
   try {
     const response = await apiRequest("GET", "/api/auth/me");
     const data = await response.json();

@@ -12,15 +12,23 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { getApiUrl } from "@/config";
 
+interface User {
+  id: number;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+}
+
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [location] = useLocation();
   
-  const { data: user } = useQuery({
+  const { data: user, isLoading } = useQuery<User>({
     queryKey: ["/api/auth/me"],
     queryFn: getCurrentUser,
     staleTime: 60000,
+    retry: 1
   });
 
   // Handle scroll event for header styling
@@ -169,11 +177,15 @@ const Header = () => {
           </nav>
           
           <div className="hidden md:flex items-center space-x-4">
-            {user ? (
+            {isLoading ? (
+              <Button variant="outline" disabled>
+                Loading...
+              </Button>
+            ) : user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="flex items-center">
-                    My Account
+                    {user.firstName || user.email}
                     <ChevronDown className="ml-2 h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -200,9 +212,9 @@ const Header = () => {
                     Log In
                   </Button>
                 </Link>
-                <Link href="/#pricing">
-                  <Button className="bg-secondary text-white hover:bg-opacity-90 transition-colors duration-200">
-                    Free Trial
+                <Link href="/register">
+                  <Button className="bg-primary text-white hover:bg-primary/90 transition-colors duration-200">
+                    Start Free Trial
                   </Button>
                 </Link>
               </>
@@ -349,9 +361,9 @@ const Header = () => {
                       Log In
                     </Button>
                   </Link>
-                  <Link href="/#pricing">
-                    <Button className="w-full bg-secondary text-white hover:bg-opacity-90 transition-colors duration-200">
-                      Free Trial
+                  <Link href="/register">
+                    <Button className="w-full bg-primary text-white hover:bg-primary/90 transition-colors duration-200">
+                      Start Free Trial
                     </Button>
                   </Link>
                 </>

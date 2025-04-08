@@ -56,16 +56,39 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(getApiUrl(queryKey[0] as string), {
-      credentials: "include",
-    });
+    try {
+      const res = await fetch(getApiUrl(queryKey[0] as string), {
+        credentials: "include",
+        headers: {
+          "Accept": "application/json",
+        },
+      });
 
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
+      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+        return null;
+      }
+
+      if (!res.ok) {
+        const text = await res.text();
+        let errorMessage = `${res.status}: ${res.statusText}`;
+        try {
+          const errorData = JSON.parse(text);
+          errorMessage = errorData.message || errorMessage;
+        } catch {
+          // If parsing fails, use the text as is
+        }
+        throw new Error(errorMessage);
+      }
+
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.message || "Request failed");
+      }
+      return data.data || data;
+    } catch (error) {
+      console.error("Query error:", error);
+      throw error;
     }
-
-    await throwIfResNotOk(res);
-    return await res.json();
   };
 
 export const queryClient = new QueryClient({
@@ -76,12 +99,12 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       staleTime: 5 * 60 * 1000,
       gcTime: 5 * 60 * 1000,
-      retry: false,
-      retryOnMount: false,
-      refetchOnMount: false,
+      retry: 1,
+      retryOnMount: true,
+      refetchOnMount: true,
     },
     mutations: {
-      retry: false,
+      retry: 1,
     },
   },
 });
