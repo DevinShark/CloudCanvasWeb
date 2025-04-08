@@ -24,7 +24,8 @@ const allowedOrigins = [
   'https://cloudcanvas-backend.onrender.com',
   'https://cloudcanvas.infinityfree.com',
   'https://cloudcanvas.wuaze.com',
-  /^http:\/\/localhost:\d+$/ // Regex for any localhost port
+  /^https:\/\/.*\.infinityfree\.com$/,  // Allow all infinityfree subdomains
+  /^https:\/\/.*\.infinityfree\.net$/,  // Allow all infinityfree.net subdomains
 ];
 
 const corsOptions = {
@@ -34,12 +35,15 @@ const corsOptions = {
       return callback(null, true);
     }
 
+    console.log(`[CORS] Checking origin: ${origin}`);
+
     if (allowedOrigins.some(allowed => 
       typeof allowed === 'string' ? origin === allowed : allowed.test(origin)
     )) {
+      console.log(`[CORS] Allowing origin: ${origin}`);
       callback(null, true);
     } else {
-      console.log(`CORS blocked origin: ${origin}`);
+      console.log(`[CORS] Blocked origin: ${origin}`);
       callback(new Error("Not allowed by CORS"));
     }
   },
