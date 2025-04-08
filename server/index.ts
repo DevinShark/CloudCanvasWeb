@@ -23,6 +23,7 @@ app.use(express.urlencoded({ extended: false }));
 const allowedOrigins = [
   'https://cloudcanvas-backend.onrender.com',
   'https://cloudcanvas.infinityfree.com',
+  'https://cloudcanvas.wuaze.com',
   /^http:\/\/localhost:\d+$/ // Regex for any localhost port
 ];
 
