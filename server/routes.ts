@@ -29,12 +29,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       cookie: {
         secure: process.env.NODE_ENV === "production",
         httpOnly: true,
-        sameSite: "lax",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
         path: "/",
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        domain: process.env.NODE_ENV === "production" ? ".wuaze.com" : undefined
       },
       name: "sessionId",
       rolling: true,
+      proxy: process.env.NODE_ENV === "production"
     })
   );
 

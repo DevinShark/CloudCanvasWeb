@@ -36,11 +36,11 @@ const corsOptions = {
     }
   },
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "Accept", "X-Requested-With"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
   exposedHeaders: ["Set-Cookie"],
-  maxAge: 86400, // Cache preflight requests for 24 hours
-  optionsSuccessStatus: 204,
+  maxAge: 86400,
+  optionsSuccessStatus: 204
 };
 
 // Apply CORS middleware before any routes
