@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Menu, X, ChevronDown, CloudDownload } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getCurrentUser } from "@/lib/auth";
 import { 
   DropdownMenu,
@@ -23,6 +23,7 @@ const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [location] = useLocation();
+  const queryClient = useQueryClient();
   
   const { data: user, isLoading } = useQuery<User>({
     queryKey: ["/api/auth/me"],
@@ -40,6 +41,26 @@ const Header = () => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const handleLogout = async () => {
+    try {
+      await fetch(getApiUrl("/api/auth/logout"), { 
+        method: "POST",
+        credentials: "include"
+      });
+      
+      // Clear all queries from the cache
+      queryClient.clear();
+      
+      // Force a refetch of the current user query to update the UI
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      
+      // Redirect to home page
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -197,12 +218,7 @@ const Header = () => {
                   </Link>
                   <DropdownMenuItem
                     className="cursor-pointer"
-                    onClick={() => {
-                      fetch(getApiUrl("/api/auth/logout"), { method: "POST" }).then(() => {
-                        // Clear any client-side state here if necessary
-                        window.location.href = "/";
-                      });
-                    }}
+                    onClick={handleLogout}
                   >
                     Log Out
                   </DropdownMenuItem>

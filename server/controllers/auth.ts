@@ -156,6 +156,10 @@ export const logout = (req: Request, res: Response) => {
       if (err) {
         console.error('Error destroying session:', err);
       }
+      
+      // Clear the session cookie
+      res.clearCookie('connect.sid');
+      
       res.status(200).json({
         success: true,
         message: "Logout successful"
