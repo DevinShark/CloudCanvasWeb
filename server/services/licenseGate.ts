@@ -656,8 +656,8 @@ export class LicenseGateService {
 
       console.log("LicenseGate API response:", response.data);
 
-      if (response.status === 200 && Array.isArray(response.data)) {
-        return response.data.map((license: any) => ({
+      if (response.status === 200 && response.data && Array.isArray(response.data.licenses)) {
+        return response.data.licenses.map((license: any) => ({
           id: license.id,
           licenseKey: license.licenseKey,
           isActive: license.active,
