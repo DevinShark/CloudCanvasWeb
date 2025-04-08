@@ -21,23 +21,30 @@ app.use(express.urlencoded({ extended: false }));
 
 // CORS configuration
 const allowedOrigins = [
-  'https://cloudcanvas.wuaze.com', // Your frontend production URL
+  'https://cloudcanvas-backend.onrender.com',
+  'https://cloudcanvas.infinityfree.com',
   /^http:\/\/localhost:\d+$/ // Regex for any localhost port
 ];
 
 const corsOptions = {
   origin: (origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void) => {
-    if (!origin || allowedOrigins.some(allowed => 
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    if (allowedOrigins.some(allowed => 
       typeof allowed === 'string' ? origin === allowed : allowed.test(origin)
     )) {
       callback(null, true);
     } else {
+      console.log(`CORS blocked origin: ${origin}`);
       callback(new Error("Not allowed by CORS"));
     }
   },
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Cookie"],
   exposedHeaders: ["Set-Cookie"],
   maxAge: 86400,
   optionsSuccessStatus: 204

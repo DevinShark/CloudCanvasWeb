@@ -1,13 +1,17 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Star } from "lucide-react";
-import splashImage from "@assets/CC_Splash.jpeg";
+import splashBg from "@assets/CC_Splash.jpeg";
 
 const HeroSection = () => {
   return (
     <section className="relative">
       <div className="absolute inset-0 overflow-hidden">
-        <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url(${splashImage})` }} aria-hidden="true"></div>
+        <div 
+          className="w-full h-full bg-cover bg-center bg-no-repeat" 
+          style={{ backgroundImage: `url(${splashBg})` }}
+          aria-hidden="true"
+        ></div>
         <div className="absolute inset-0 gradient-bg"></div>
       </div>
       

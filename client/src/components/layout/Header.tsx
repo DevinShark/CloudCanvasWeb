@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Menu, X, ChevronDown } from "lucide-react";
+import { Menu, X, ChevronDown, CloudDownload } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getCurrentUser } from "@/lib/auth";
-import logoPath from "@assets/CC_icon.ico";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -49,9 +48,9 @@ const Header = () => {
       <div className="container mx-auto px-6 py-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-2">
-            <img src={logoPath} alt="Cloud Canvas Logo" className="h-10 w-10" />
-            <Link href="/" className="text-2xl font-bold text-primary">
-              CloudCanvas
+            <Link href="/" className="flex items-center space-x-2 text-2xl font-bold text-primary">
+              <CloudDownload className="h-8 w-8" />
+              <span>CloudCanvas</span>
             </Link>
           </div>
           
