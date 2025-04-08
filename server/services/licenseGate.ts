@@ -275,39 +275,30 @@ export class LicenseGateService {
       try {
         console.log("Connecting to LicenseGate API...");
         console.log("API URL:", API_URL);
-        console.log("Request payload:", {
-          active: true,
-          name: fullName,
-          notes: `CloudCanvas Trial License\nEmail: ${user.email}\nPlan: Trial\nSubscription Type: Trial`,
-          ipLimit: null,
-          licenseScope: null,
-          expirationDate: expiryDate.toISOString(),
-          validationPoints: null,
-          validationLimit: null,
-          replenishAmount: null,
-          replenishInterval: "TEN_SECONDS",
-          licenseKey: ""
-        });
+        
+        // Generate a unique license key
+        const uniqueId = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit number
+        const licenseKey = `CC-TRIAL-${uniqueId}`;
 
-        // Create license via LicenseGate API
+        // Create license via LicenseGate API with payload matching the working Python script
         const response = await axios.post(
           `${API_URL}/admin/licenses`,
           {
             active: true,
             name: fullName,
             notes: `CloudCanvas Trial License\nEmail: ${user.email}\nPlan: Trial\nSubscription Type: Trial`,
-            ipLimit: null,
-            licenseScope: null,
+            ipLimit: 1,
+            licenseScope: "",
             expirationDate: expiryDate.toISOString(),
-            validationPoints: null,
-            validationLimit: null,
-            replenishAmount: null,
+            validationPoints: 0.0,
+            validationLimit: 0,
+            replenishAmount: 0,
             replenishInterval: "TEN_SECONDS",
-            licenseKey: ""
+            licenseKey: licenseKey
           },
           {
             headers: {
-              Authorization: `Bearer ${API_KEY}`,
+              Authorization: API_KEY, // Just the key, no 'Bearer' prefix
               "Content-Type": "application/json",
               Accept: "application/json",
             },
