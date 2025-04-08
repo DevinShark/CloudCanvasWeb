@@ -15,6 +15,7 @@ export interface IStorage {
   setUserVerified(id: number, verified: boolean): Promise<User | undefined>;
   updateUserVerificationToken(id: number, token: string | null): Promise<User | undefined>;
   updateUserResetToken(id: number, token: string | null): Promise<User | undefined>;
+  getAllUsers(): Promise<User[]>;
 
   // Subscription methods
   getSubscription(id: number): Promise<Subscription | undefined>;
@@ -25,9 +26,11 @@ export interface IStorage {
 
   // License methods
   getLicense(id: number): Promise<License | undefined>;
+  getLicenseByKey(key: string): Promise<License | undefined>;
   getUserLicenses(userId: number): Promise<License[]>;
   createLicense(license: InsertLicense): Promise<License>;
   updateLicense(id: number, data: Partial<InsertLicense>): Promise<License | undefined>;
+  findTrialLicenseByUserId(userId: number): Promise<License | undefined>;
 
   // Demo request methods
   createDemoRequest(demoRequest: InsertDemoRequest): Promise<DemoRequest>;

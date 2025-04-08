@@ -235,38 +235,74 @@ export const getUserSubscriptions = async (req: Request, res: Response) => {
     }
 
     const userId = (req.user as any).id;
-
-    try {
-      // Get all subscriptions for the user, prioritizing active ones
-      const subscriptions = await storage.getUserSubscriptions(userId);
-      
-      if (subscriptions.length === 0) {
-        return res.status(200).json(null); // Return null instead of 404 error
-      }
-      
-      // Get the most recent active subscription
-      const activeSubscription = subscriptions
-        .filter(sub => sub.status === "active")
-        .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())[0];
-
-      if (activeSubscription) {
-        return res.status(200).json(activeSubscription);
-      }
-
-      // If no active subscription, return the most recent one
-      const mostRecentSubscription = subscriptions
-        .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())[0];
-
-      res.status(200).json(mostRecentSubscription || null);
-    } catch (error) {
-      console.error("Error getting user subscriptions:", error);
-      res.status(200).json(null); // Return null instead of error
+    if (typeof userId !== 'number' || isNaN(userId)) {
+      console.error("Invalid userId:", userId);
+      return res.status(400).json({ success: false, message: "Invalid user identifier" });
     }
+
+    // Get all subscriptions for the user
+    const subscriptions = await storage.getUserSubscriptions(userId);
+
+    // Find the most recent active subscription (if any)
+    const activeSubscription = subscriptions
+      .filter(sub => sub.status === "active")
+      .sort((a, b) => {
+        // Ensure dates are valid before comparing
+        const dateA = a.startDate ? new Date(a.startDate).getTime() : 0;
+        const dateB = b.startDate ? new Date(b.startDate).getTime() : 0;
+        // Handle potential NaN from invalid dates
+        if (isNaN(dateA) || isNaN(dateB)) {
+          console.warn("Invalid date encountered during subscription sort", { a, b });
+          return 0; // Maintain original order if dates are invalid
+        }
+        return dateB - dateA; // Sort descending by start date
+      })[0]; // Get the first element (most recent)
+
+    let detailedSubscription = null;
+    if (activeSubscription && activeSubscription.id && !isNaN(activeSubscription.id)) {
+      try {
+        // Fetch detailed information ONLY if we have a valid active subscription ID
+        detailedSubscription = await storage.getSubscription(activeSubscription.id);
+      } catch (detailError) {
+        console.error(`Error fetching details for active subscription ID ${activeSubscription.id}:`, detailError);
+        // Proceed without detailed info if fetching fails, but log the error
+      }
+    }
+
+    // Return the active subscription details if available, otherwise the full list (or null if empty)
+    if (detailedSubscription) {
+       res.status(200).json({
+         success: true,
+         activeSubscription: detailedSubscription, // Send detailed active one if found
+         allSubscriptions: subscriptions // Optionally include all for history
+       });
+    } else if (subscriptions.length > 0) {
+       res.status(200).json({
+         success: true,
+         activeSubscription: null, // Explicitly null if no active one found/detailed fetch failed
+         allSubscriptions: subscriptions // Send the full list
+       });
+    } else {
+      // No subscriptions found at all
+      res.status(200).json({
+        success: true,
+        activeSubscription: null,
+        allSubscriptions: [] // Send empty array
+      });
+    }
+
   } catch (error) {
     console.error("Get user subscriptions error:", error);
+    // Check if it's the specific NaN error we identified
+    if (error instanceof Error && error.message.includes('invalid input syntax for type integer: "NaN"')) {
+        return res.status(500).json({
+            success: false,
+            message: "Server error retrieving subscription details due to invalid ID."
+        });
+    }
     res.status(500).json({
       success: false,
-      message: "Server error"
+      message: "Server error retrieving subscriptions"
     });
   }
 };

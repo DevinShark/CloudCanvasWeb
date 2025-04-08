@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, and, isNull, desc } from 'drizzle-orm';
 import { db } from '../db';
 import { IStorage } from '../storage';
 import {
@@ -29,36 +29,25 @@ export class PostgresStorage implements IStorage {
     return results[0];
   }
 
-  async updateUser(id: number, userData: Partial<InsertUser>): Promise<User | undefined> {
-    const results = await db.update(users)
-      .set(userData)
-      .where(eq(users.id, id))
-      .returning();
+  async updateUser(id: number, updates: Partial<User>): Promise<User | undefined> {
+    const results = await db.update(users).set(updates).where(eq(users.id, id)).returning();
     return results[0];
   }
 
-  async setUserVerified(id: number, verified: boolean): Promise<User | undefined> {
-    const results = await db.update(users)
-      .set({ isVerified: verified, verificationToken: null })
-      .where(eq(users.id, id))
-      .returning();
-    return results[0];
+  async setUserVerified(id: number, isVerified: boolean): Promise<void> {
+    await db.update(users).set({ isVerified }).where(eq(users.id, id));
   }
 
-  async updateUserVerificationToken(id: number, token: string | null): Promise<User | undefined> {
-    const results = await db.update(users)
-      .set({ verificationToken: token })
-      .where(eq(users.id, id))
-      .returning();
-    return results[0];
+  async updateUserVerificationToken(id: number, token: string | null): Promise<void> {
+    await db.update(users).set({ verificationToken: token }).where(eq(users.id, id));
   }
 
-  async updateUserResetToken(id: number, token: string | null): Promise<User | undefined> {
-    const results = await db.update(users)
-      .set({ resetPasswordToken: token })
-      .where(eq(users.id, id))
-      .returning();
-    return results[0];
+  async updateUserResetToken(id: number, token: string | null): Promise<void> {
+    await db.update(users).set({ resetPasswordToken: token }).where(eq(users.id, id));
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return db.select().from(users);
   }
 
   // Subscription methods
@@ -67,9 +56,8 @@ export class PostgresStorage implements IStorage {
     return results[0];
   }
 
-  async getSubscriptionByPaypalId(paypalId: string): Promise<Subscription | undefined> {
-    const results = await db.select().from(subscriptions)
-      .where(eq(subscriptions.paypalSubscriptionId, paypalId));
+  async getSubscriptionByPaypalId(paypalSubscriptionId: string): Promise<Subscription | undefined> {
+    const results = await db.select().from(subscriptions).where(eq(subscriptions.paypalSubscriptionId, paypalSubscriptionId));
     return results[0];
   }
 
@@ -84,11 +72,8 @@ export class PostgresStorage implements IStorage {
     return results[0];
   }
 
-  async updateSubscription(id: number, data: Partial<InsertSubscription>): Promise<Subscription | undefined> {
-    const results = await db.update(subscriptions)
-      .set(data)
-      .where(eq(subscriptions.id, id))
-      .returning();
+  async updateSubscription(id: number, updates: Partial<Subscription>): Promise<Subscription | undefined> {
+    const results = await db.update(subscriptions).set(updates).where(eq(subscriptions.id, id)).returning();
     return results[0];
   }
 
@@ -98,22 +83,51 @@ export class PostgresStorage implements IStorage {
     return results[0];
   }
 
+  async getLicenseByKey(key: string): Promise<License | undefined> {
+    const results = await db.select().from(licenses).where(eq(licenses.licenseKey, key));
+    return results[0];
+  }
+
   async getUserLicenses(userId: number): Promise<License[]> {
     return db.select().from(licenses).where(eq(licenses.userId, userId));
   }
 
   async createLicense(licenseData: InsertLicense): Promise<License> {
+    // Ensure dates are Date objects before insertion
+    const dataToInsert = {
+      ...licenseData,
+      expiryDate: licenseData.expiryDate instanceof Date ? licenseData.expiryDate : new Date(licenseData.expiryDate || Date.now()),
+      createdAt: licenseData.createdAt instanceof Date ? licenseData.createdAt : new Date(licenseData.createdAt || Date.now())
+    };
     const results = await db.insert(licenses)
-      .values(licenseData)
+      .values(dataToInsert)
       .returning();
     return results[0];
   }
 
-  async updateLicense(id: number, data: Partial<InsertLicense>): Promise<License | undefined> {
-    const results = await db.update(licenses)
-      .set(data)
-      .where(eq(licenses.id, id))
-      .returning();
+  async updateLicense(id: number, updates: Partial<License>): Promise<License | undefined> {
+    // Ensure dates are Date objects if provided in updates
+    const dataToUpdate = { ...updates };
+    if (updates.expiryDate) {
+      dataToUpdate.expiryDate = updates.expiryDate instanceof Date ? updates.expiryDate : new Date(updates.expiryDate);
+    }
+     if (updates.createdAt) { // Handle createdAt if it can be updated
+       dataToUpdate.createdAt = updates.createdAt instanceof Date ? updates.createdAt : new Date(updates.createdAt);
+     }
+
+    const results = await db.update(licenses).set(dataToUpdate).where(eq(licenses.id, id)).returning();
+    return results[0];
+  }
+
+  async findTrialLicenseByUserId(userId: number): Promise<License | undefined> {
+    const results = await db.select()
+      .from(licenses)
+      .where(and(
+        eq(licenses.userId, userId),
+        isNull(licenses.subscriptionId) // Trial licenses have NULL subscriptionId
+      ))
+      .orderBy(desc(licenses.createdAt)) // Get the most recent one if multiple exist
+      .limit(1);
     return results[0];
   }
 
