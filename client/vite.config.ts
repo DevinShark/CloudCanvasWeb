@@ -20,13 +20,13 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: 'dist',
+    outDir: '../dist',
     sourcemap: true,
     assetsDir: 'assets',
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
+          vendor: ['react', 'react-dom', 'wouter'],
         },
       },
       external: ['@shared/schema'],

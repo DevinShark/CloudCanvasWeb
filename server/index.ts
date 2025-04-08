@@ -114,7 +114,7 @@ const server = app.listen(port, () => {
 
 // Serve static files in production
 if (isProduction) {
-  const distPath = path.resolve(__dirname, "..", "dist", "public");
+  const distPath = path.resolve(__dirname, "..", "dist");
 
   if (!fs.existsSync(distPath)) {
     console.log(`[Server] Static directory not found: ${distPath}. Make sure to build the client first.`);
