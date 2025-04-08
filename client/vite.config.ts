@@ -30,8 +30,7 @@ export default defineConfig({
         manualChunks: {
           vendor: ['react', 'react-dom', 'wouter'],
         },
-      },
-      external: ['@shared/schema'],
+      }
     },
   },
   server: {
