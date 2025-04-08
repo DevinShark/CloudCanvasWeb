@@ -12,6 +12,7 @@ import * as authController from "./controllers/auth";
 import * as subscriptionController from "./controllers/subscription";
 import * as licenseController from "./controllers/license";
 import * as webhookController from "./controllers/webhook";
+import * as healthController from "./controllers/health";
 
 // Import middleware
 import { requireAuth } from "./middleware/auth";
@@ -52,7 +53,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const user = await storage.getUserByEmail(email);
           
           if (!user) {
-            return done(null, false, { message: "Invalid email or password" });
+            return done(null, false, { message: "No account found with this email" });
           }
           
           if (!user.isVerified) {
@@ -62,7 +63,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const isMatch = await bcrypt.compare(password, user.password);
           
           if (!isMatch) {
-            return done(null, false, { message: "Invalid email or password" });
+            return done(null, false, { message: "Incorrect password" });
           }
           
           return done(null, user);
@@ -97,6 +98,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/login", authController.login);
   app.post("/api/auth/logout", authController.logout);
   // Public routes
+  app.get("/api/health", healthController.checkHealth);
   app.post("/api/auth/register", authController.register);
   app.post("/api/auth/login", authController.login);
   app.get("/api/auth/verify-email/:token", authController.verifyEmail);

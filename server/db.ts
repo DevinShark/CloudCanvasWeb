@@ -1,6 +1,11 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { Pool } from 'pg';
-import * as schema from '@shared/schema';
+import pkg from 'pg';
+const { Pool } = pkg;
+import * as schema from '../shared/schema';
+import * as dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
 
 if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL environment variable is required');
@@ -9,7 +14,7 @@ if (!process.env.DATABASE_URL) {
 // Create a PostgreSQL connection pool
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  ssl: { rejectUnauthorized: false } // Required for Render.com PostgreSQL
 });
 
 // Create a drizzle database instance
