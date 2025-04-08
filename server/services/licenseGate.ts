@@ -257,15 +257,11 @@ export class LicenseGateService {
       const expiryDate = new Date(startDate);
       expiryDate.setDate(expiryDate.getDate() + trialDays);
 
-      // Generate a unique license key for trial with CC-TRIAL prefix
-      const uniqueId = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit number
-      let trialLicenseKey = `CC-TRIAL-${uniqueId}`;
-
-      console.log("Creating trial license for user:", {
+      console.log("Creating trial license with details:", {
         fullName,
         email: user.email,
-        licenseKey: trialLicenseKey,
         expiryDate: expiryDate.toISOString(),
+        trialDays
       });
 
       // Check if we have valid API credentials
@@ -278,41 +274,58 @@ export class LicenseGateService {
 
       try {
         console.log("Connecting to LicenseGate API...");
-        // Format according to CloudCanvas requirements
+        console.log("API URL:", API_URL);
+        console.log("Request payload:", {
+          active: true,
+          name: fullName,
+          notes: `CloudCanvas Trial License\nEmail: ${user.email}\nPlan: Trial\nSubscription Type: Trial`,
+          ipLimit: null,
+          licenseScope: null,
+          expirationDate: expiryDate.toISOString(),
+          validationPoints: null,
+          validationLimit: null,
+          replenishAmount: null,
+          replenishInterval: "TEN_SECONDS",
+          licenseKey: ""
+        });
+
+        // Create license via LicenseGate API
         const response = await axios.post(
           `${API_URL}/admin/licenses`,
           {
             active: true,
-            name: [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email,
-            notes: `Plan - Trial\nEmail - ${user.email}`,
-            ipLimit: 1,
-            licenseScope: "",
+            name: fullName,
+            notes: `CloudCanvas Trial License\nEmail: ${user.email}\nPlan: Trial\nSubscription Type: Trial`,
+            ipLimit: null,
+            licenseScope: null,
             expirationDate: expiryDate.toISOString(),
-            validationPoints: 0.0,
-            validationLimit: 0,
-            replenishAmount: 0,
-            replenishInterval: "TEN_SECONDS"
+            validationPoints: null,
+            validationLimit: null,
+            replenishAmount: null,
+            replenishInterval: "TEN_SECONDS",
+            licenseKey: ""
           },
           {
             headers: {
-              Authorization: API_KEY,
+              Authorization: `Bearer ${API_KEY}`,
               "Content-Type": "application/json",
               Accept: "application/json",
             },
-            timeout: 10000, // Add timeout to prevent long wait
+            timeout: 10000,
           },
         );
 
-        console.log("LicenseGate API trial response:", response.data);
+        console.log("LicenseGate API response:", {
+          status: response.status,
+          data: response.data,
+          headers: response.headers
+        });
 
         if (response.status === 201 || response.status === 200) {
-          // If successful, use the key from the response if available
-          if (response.data && response.data.licenseKey) {
-            trialLicenseKey = response.data.licenseKey;
-          }
+          const licenseKey = response.data.licenseKey;
           console.log(
             "License successfully created in LicenseGate with key:",
-            trialLicenseKey,
+            licenseKey,
           );
 
           // Only create the license in our database after successful creation in LicenseGate
@@ -321,7 +334,7 @@ export class LicenseGateService {
             const license = await storage.createLicense({
               userId: user.id,
               subscriptionId: null, // Null for trial licenses
-              licenseKey: trialLicenseKey,
+              licenseKey: licenseKey,
               isActive: true,
               expiryDate,
               createdAt: startDate.toISOString(),
@@ -348,12 +361,18 @@ export class LicenseGateService {
         }
       } catch (err) {
         const error = err as any;
-        console.error("Error connecting to LicenseGate API:", error);
+        console.error("Error connecting to LicenseGate API:", {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status,
+          headers: error.response?.headers
+        });
 
         if (error.response) {
           console.error("LicenseGate API error response:", {
             status: error.response.status,
             data: error.response.data,
+            headers: error.response.headers
           });
 
           if (error.response.status === 401) {

@@ -101,22 +101,31 @@ export async function reactivateLicense(licenseId: string): Promise<void> {
  */
 export async function generateTrialLicense(): Promise<void> {
   try {
-    await apiRequest("POST", "/api/licenses/generate-trial");
+    const response = await apiRequest("POST", "/api/licenses/generate-trial");
+    const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error(data.message || "Failed to generate trial license");
+    }
     
     toast({
       title: "Trial activated",
-      description: "Your 30-day trial license has been generated and sent to your email.",
+      description: "Your 7-day trial license has been generated and sent to your email.",
     });
     
     // Refresh the page to show the new license
     setTimeout(() => {
       window.location.reload();
     }, 1500);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Generate trial license error:", error);
+    
+    // Extract error message from response if available
+    const errorMessage = error.response?.data?.message || error.message || "There was an error generating your trial license. Please try again or contact support.";
+    
     toast({
       title: "Trial activation failed",
-      description: "There was an error generating your trial license. Please try again or contact support.",
+      description: errorMessage,
       variant: "destructive",
     });
     throw error;
