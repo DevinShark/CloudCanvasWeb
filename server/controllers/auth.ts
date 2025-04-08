@@ -152,9 +152,14 @@ export const login = (req: Request, res: Response) => {
 // Logout user
 export const logout = (req: Request, res: Response) => {
   req.logout(() => {
-    res.status(200).json({
-      success: true,
-      message: "Logout successful"
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('Error destroying session:', err);
+      }
+      res.status(200).json({
+        success: true,
+        message: "Logout successful"
+      });
     });
   });
 };

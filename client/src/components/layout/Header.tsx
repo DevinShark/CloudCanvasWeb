@@ -197,9 +197,12 @@ const Header = () => {
                   </Link>
                   <DropdownMenuItem
                     className="cursor-pointer"
-                    onClick={() => fetch(getApiUrl("/api/auth/logout"), { method: "POST" }).then(() => {
-                      window.location.href = "/";
-                    })}
+                    onClick={() => {
+                      fetch(getApiUrl("/api/auth/logout"), { method: "POST" }).then(() => {
+                        // Clear any client-side state here if necessary
+                        window.location.href = "/";
+                      });
+                    }}
                   >
                     Log Out
                   </DropdownMenuItem>
