@@ -112,7 +112,8 @@ export async function generateTrialLicense() {
     const existingLicenses = await queryClient.fetchQuery({
       queryKey: ["userLicenses"],
       queryFn: async () => {
-        const response = await fetch("/api/licenses/user", {
+        const apiUrl = `${import.meta.env.VITE_API_BASE_URL || ''}/api/licenses/user`;
+        const response = await fetch(apiUrl, {
           credentials: "include",
         });
         if (!response.ok) {
@@ -131,7 +132,8 @@ export async function generateTrialLicense() {
     }
 
     // Generate trial license
-    const response = await fetch("/api/licenses/trial", {
+    const trialApiUrl = `${import.meta.env.VITE_API_BASE_URL || ''}/api/licenses/trial`;
+    const response = await fetch(trialApiUrl, {
       method: "POST",
       credentials: "include",
     });

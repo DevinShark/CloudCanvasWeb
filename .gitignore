@@ -6,3 +6,11 @@ vite.config.ts.*
 *.tar.gz
 .env
 attached_assets/
+
+# Environment variables
+.env*
+!/.env.example
+
+# Client Environment variables
+client/.env*
+client/!/.env.example
