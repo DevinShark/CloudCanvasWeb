@@ -291,39 +291,40 @@ Subscription Type: Trial`;
         name: fullName,
         notes: notes,
         ipLimit: 1,
-        licenseScope: "trial",
+        licenseScope: "", // Empty string as per Python script
         expirationDate: expiryDate.toISOString(),
-        validationPoints: 0,
+        validationPoints: 0.0, // Float as per Python script
         validationLimit: 0,
         replenishAmount: 0,
-        replenishInterval: "TEN_SECONDS",
-        email: user.email // Add email field as per Python script
+        replenishInterval: "TEN_SECONDS"
       };
 
       console.log("Creating trial license with details:", licenseDataForApi);
 
-      // Create license via LicenseGate API
+      // Create license via LicenseGate API with exact headers from Python script
       const response = await axios.post(
         `${API_URL}/admin/licenses`,
         licenseDataForApi,
         {
           headers: {
-            Authorization: API_KEY,
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          timeout: 15000,
-        },
+            'Content-Type': 'application/json',
+            'Authorization': API_KEY // Just the key, no 'Bearer' prefix
+          }
+        }
       );
 
-      console.log("LicenseGate API response:", { status: response.status, data: response.data });
+      console.log("LicenseGate API response:", response.data);
 
-      if (!response.data || !response.data.licenseKey) {
-        throw new Error("Invalid response from LicenseGate API: Missing license key");
+      if (response.status !== 201) {
+        throw new Error(`Unexpected response status: ${response.status}`);
       }
 
       const licenseDataFromApi = response.data;
       const licenseKey = licenseDataFromApi.licenseKey;
+
+      if (!licenseKey) {
+        throw new Error("No license key returned from API");
+      }
 
       // Parse dates with validation
       const expirationDate = new Date(licenseDataFromApi.expirationDate);
