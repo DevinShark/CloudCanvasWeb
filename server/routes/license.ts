@@ -13,6 +13,29 @@ router.post("/generate", requireAuth, generateLicense);
 // Generate a trial license
 router.post("/trial", requireAuth, generateTrialLicense);
 
+// Get user's licenses
+router.get("/user", requireAuth, async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized"
+      });
+    }
+
+    const userId = (req.user as any).id;
+    const licenses = await storage.getUserLicenses(userId);
+
+    res.json(licenses);
+  } catch (error) {
+    console.error("Error fetching user licenses:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch user licenses"
+    });
+  }
+});
+
 // Get licenses for the currently logged-in user
 router.get("/me", requireAuth, async (req, res, next) => {
   try {
