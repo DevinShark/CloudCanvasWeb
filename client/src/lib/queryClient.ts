@@ -20,6 +20,7 @@ export async function apiRequest(
       headers: {
         ...(data ? { "Content-Type": "application/json" } : {}),
         "Accept": "application/json",
+        "X-Requested-With": "XMLHttpRequest"
       },
       body: data ? JSON.stringify(data) : undefined,
       credentials: "include",
@@ -34,6 +35,7 @@ export async function apiRequest(
         errorMessage = errorData.message || errorMessage;
       } catch {
         // If parsing fails, use the text as is
+        console.error("Failed to parse error response:", text);
       }
       throw new Error(errorMessage);
     }
@@ -41,6 +43,7 @@ export async function apiRequest(
     return res;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+    console.error("API request failed:", error);
     toast({
       title: "Error",
       description: errorMessage,

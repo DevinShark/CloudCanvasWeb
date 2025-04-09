@@ -28,15 +28,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       resave: true,
       saveUninitialized: false,
       cookie: {
-        secure: process.env.NODE_ENV === "production",
+        secure: true,
         httpOnly: true,
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        sameSite: "none",
         path: "/",
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        domain: process.env.NODE_ENV === "production" ? ".onrender.com" : undefined
       },
       name: "sessionId",
       rolling: true,
-      proxy: process.env.NODE_ENV === "production"
+      proxy: true
     })
   );
 

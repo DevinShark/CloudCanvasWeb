@@ -49,10 +49,12 @@ const corsOptions = {
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Cookie"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Cookie", "Origin"],
   exposedHeaders: ["Set-Cookie"],
   maxAge: 86400,
-  optionsSuccessStatus: 204
+  optionsSuccessStatus: 204,
+  preflightContinue: false,
+  optionsPreflightContinue: false
 };
 
 // Apply CORS middleware before any routes
