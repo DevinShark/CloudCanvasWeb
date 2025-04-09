@@ -63,6 +63,11 @@ app.use(cors(corsOptions));
 // Handle preflight requests explicitly
 app.options("*", cors(corsOptions));
 
+// Trust proxy in production
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
+
 // Store the application URL in process.env for use in emails
 const appProtocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
 const port = process.env.PORT || 3000;

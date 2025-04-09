@@ -117,12 +117,7 @@ export async function resetPassword(token: string, newPassword: string): Promise
  */
 export async function getCurrentUser(): Promise<User> {
   try {
-    const response = await fetch(getApiUrl("/api/auth/me"), {
-      credentials: "include",
-    });
-    if (!response.ok) {
-      return null;
-    }
+    const response = await apiRequest("GET", "/api/auth/me");
     const data = await response.json();
     return data.user;
   } catch (error) {
