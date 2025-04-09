@@ -33,7 +33,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sameSite: "none",
         path: "/",
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
-        domain: process.env.NODE_ENV === "production" ? ".onrender.com" : undefined
+        domain: undefined
       },
       name: "sessionId",
       rolling: true,

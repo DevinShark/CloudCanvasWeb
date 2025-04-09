@@ -24,8 +24,11 @@ const allowedOrigins = [
   'https://cloudcanvas-backend.onrender.com',
   'https://cloudcanvas.infinityfree.com',
   'https://cloudcanvas.wuaze.com',
+  'http://localhost:3000',  // For local development
+  'http://localhost:5173',  // For Vite dev server
   /^https:\/\/.*\.infinityfree\.com$/,  // Allow all infinityfree subdomains
   /^https:\/\/.*\.infinityfree\.net$/,  // Allow all infinityfree.net subdomains
+  /^https:\/\/.*\.onrender\.com$/,      // Allow all onrender.com subdomains
 ];
 
 const corsOptions = {
