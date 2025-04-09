@@ -260,28 +260,18 @@ export class LicenseGateService {
         // Check specifically for an ACTIVE trial (no subscriptionId or null/0)
         const activeTrialLicense = existingLicenses.find(license =>
             license.isActive &&
-            (license.subscriptionId === null || license.subscriptionId === 0) // Check for null or 0 subscriptionId for trials
+            (license.subscriptionId === null || license.subscriptionId === 0)
         );
 
         if (activeTrialLicense) {
           console.log(`User ${user.email} already has an active trial license, checking local DB...`);
-          // Try to find the corresponding license in the local DB using the LicenseGate ID
-          // Note: getUserLicensesFromLicenseGate returns 'id' from LicenseGate, which might not be our local DB license ID.
-          // We should rely on licenseKey or fetch by userId and lack of subscriptionId
-           const localTrial = await storage.findTrialLicenseByUserId(user.id);
+          const localTrial = await storage.findTrialLicenseByUserId(user.id);
 
           if (localTrial) {
             console.log("Found existing trial license in database:", localTrial.licenseKey, "Returning it.");
             return localTrial;
-          } else {
-            console.warn(`Active trial found in LicenseGate (ID: ${activeTrialLicense.id}, Key: ${activeTrialLicense.licenseKey}) but not in local DB for user ${user.id}. Proceeding to create/save locally.`);
-             // Potentially log this discrepancy for investigation
           }
-        } else {
-           console.log("User eligible for trial - proceeding with license creation");
         }
-      } else {
-        console.log("Admin user - proceeding with trial license creation");
       }
 
       // Generate trial license details
@@ -295,87 +285,65 @@ Email: ${user.email}
 Plan: Trial
 Subscription Type: Trial`;
 
+      // Create license payload matching Python script exactly
       const licenseDataForApi = {
         active: true,
         name: fullName,
         notes: notes,
-        ipLimit: 1, // Example: Limit trial licenses to 1 IP
-        licenseScope: "trial", // Specific scope for trial
-        expirationDate: expiryDate.toISOString(), // Use ISO string for API
-        // Other fields as required by LicenseGate for trial, ensure they match Python test
+        ipLimit: 1,
+        licenseScope: "trial",
+        expirationDate: expiryDate.toISOString(),
         validationPoints: 0,
         validationLimit: 0,
         replenishAmount: 0,
-        replenishInterval: "TEN_SECONDS", // Or appropriate interval
+        replenishInterval: "TEN_SECONDS",
+        email: user.email // Add email field as per Python script
       };
 
       console.log("Creating trial license with details:", licenseDataForApi);
 
       // Create license via LicenseGate API
-      console.log("Connecting to LicenseGate API...");
       const response = await axios.post(
         `${API_URL}/admin/licenses`,
         licenseDataForApi,
         {
           headers: {
-            Authorization: API_KEY, // Directly use the API Key
+            Authorization: API_KEY,
             "Content-Type": "application/json",
             Accept: "application/json",
           },
-          timeout: 15000, // Increased timeout
+          timeout: 15000,
         },
       );
 
-      console.log("LicenseGate API response:", { status: response.status, data: response.data, headers: response.headers });
+      console.log("LicenseGate API response:", { status: response.status, data: response.data });
 
-      // Check for successful creation (typically 201 Created)
-      if (response.status !== 201 && response.status !== 200) {
-         // Log the unexpected response
-         console.error(`Unexpected success status from LicenseGate API: ${response.status}`);
-         // Still attempt to proceed if data looks valid, but log warning
-         if (!response.data || !response.data.licenseKey) {
-           throw new Error(
-             `Unexpected response from LicenseGate API: Status ${response.status}, Body: ${JSON.stringify(response.data)}`
-           );
-         }
-         console.warn("Proceeding despite unexpected success status code.");
+      if (!response.data || !response.data.licenseKey) {
+        throw new Error("Invalid response from LicenseGate API: Missing license key");
       }
 
       const licenseDataFromApi = response.data;
       const licenseKey = licenseDataFromApi.licenseKey;
-      console.log("License successfully created in LicenseGate with key:", licenseKey);
 
-      // ---- FIX: Convert date strings to Date objects before saving ----
-      const expirationDateFromApi = licenseDataFromApi.expirationDate ? new Date(licenseDataFromApi.expirationDate) : new Date(); // Use current date as fallback
-      const createdAtFromApi = licenseDataFromApi.createdAt ? new Date(licenseDataFromApi.createdAt) : new Date(); // Use current date as fallback
+      // Parse dates with validation
+      const expirationDate = new Date(licenseDataFromApi.expirationDate);
+      const createdAt = new Date(licenseDataFromApi.createdAt || new Date());
 
-      if (isNaN(expirationDateFromApi.getTime())) {
-          console.warn("Invalid expirationDate received from LicenseGate API:", licenseDataFromApi.expirationDate);
-          // Decide on fallback logic, e.g., use the originally calculated expiryDate
-          // expirationDateFromApi = expiryDate;
+      if (isNaN(expirationDate.getTime())) {
+        console.warn("Invalid expirationDate from API, using calculated date");
+        expirationDate.setTime(expiryDate.getTime());
       }
-      if (isNaN(createdAtFromApi.getTime())) {
-          console.warn("Invalid createdAt date received from LicenseGate API:", licenseDataFromApi.createdAt);
-          // createdAtFromApi = new Date(); // Fallback to now
-      }
-      // -----------------------------------------------------------------
 
       // Save the license to the local database
-      console.log("Saving license to local database...");
       const license = await storage.createLicense({
         userId: user.id,
         subscriptionId: null, // Explicitly null for trial licenses
-        licenseKey: licenseKey, // Use the key from the API response
-        isActive: licenseDataFromApi.active ?? true, // Use value from API or default to true
-        // ---- FIX: Use the converted Date objects ----
-        expiryDate: expirationDateFromApi,
-        createdAt: createdAtFromApi, // Pass createdAt if your schema/storage expects it
-        // ---------------------------------------------
-        plan: 'trial', // Add plan type if relevant in local DB
-        billingType: 'trial', // Add billing type if relevant
-        // Map other relevant fields if needed
-        ipLimit: licenseDataFromApi.ipLimit,
-        licenseScope: licenseDataFromApi.licenseScope
+        licenseKey: licenseKey,
+        isActive: true,
+        expiryDate: expirationDate,
+        createdAt: createdAt,
+        plan: 'trial',
+        billingType: 'trial'
       });
 
       console.log("Trial license created successfully in database:", license);
@@ -384,39 +352,21 @@ Subscription Type: Trial`;
     } catch (error) {
       console.error("Error during trial license creation:", error);
 
-      // Check if the error happened *after* LicenseGate success but during DB save
-      if (error.message.includes("failed to save in database")) {
-         // This specific error is thrown by our own code after a successful API call failed DB op
-         console.error("License was created in LicenseGate but failed during database save.");
-         // Potentially attempt cleanup on LicenseGate or notify admin
-         throw new Error("Trial license created externally but database update failed. Please contact support.");
-      }
-      // Handle specific Axios/API errors
-      else if (axios.isAxiosError(error)) {
-        console.error("LicenseGate API communication error:", {
-          message: error.message,
+      if (axios.isAxiosError(error)) {
+        console.error("LicenseGate API error:", {
           status: error.response?.status,
           data: error.response?.data,
-          config: { url: error.config?.url, method: error.config?.method, headers: error.config?.headers } // Log request details carefully
+          message: error.message
         });
+        
         if (error.response?.status === 401) {
-          throw new Error(
-            "Authentication failed with LicenseGate. Invalid API credentials.",
-          );
-        } else {
-           throw new Error(
-             `Failed to communicate with LicenseGate API: ${error.message}`
-           );
+          throw new Error("Authentication failed with LicenseGate. Invalid API credentials.");
         }
       }
-      // Handle other errors
-      else {
-         console.error("An unexpected error occurred:", error);
-         // Ensure a generic but informative error is thrown
-         throw new Error(
-           `Failed to create trial license: ${error.message || "An unknown error occurred."}`
-         );
-      }
+
+      throw new Error(
+        `Failed to create trial license: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
     }
   }
 
