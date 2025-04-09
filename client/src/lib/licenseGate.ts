@@ -1,5 +1,7 @@
 import { apiRequest } from "@/lib/queryClient";
 import { toast } from "@/hooks/use-toast";
+import { getCurrentUser } from "@/lib/auth";
+import { queryClient } from "@/lib/queryClient";
 
 /**
  * Generate a license key
@@ -99,32 +101,55 @@ export async function reactivateLicense(licenseId: string): Promise<void> {
 /**
  * Generate a trial license
  */
-export async function generateTrialLicense(): Promise<void> {
+export async function generateTrialLicense() {
   try {
-    const response = await apiRequest("POST", "/api/licenses/generate-trial");
-    const data = await response.json();
-    
-    if (!data.success) {
-      throw new Error(data.message || "Failed to generate trial license");
+    const user = await getCurrentUser();
+    if (!user) {
+      throw new Error("User not authenticated");
     }
-    
-    toast({
-      title: "Trial activated",
-      description: "Your 7-day trial license has been generated and sent to your email.",
+
+    // Check if user has any existing licenses
+    const existingLicenses = await queryClient.fetchQuery({
+      queryKey: ["userLicenses"],
+      queryFn: async () => {
+        const response = await fetch("/api/licenses/user", {
+          credentials: "include",
+        });
+        if (!response.ok) {
+          throw new Error("Failed to fetch licenses");
+        }
+        return response.json();
+      },
     });
+
+    // Allow unlimited trials for admin email
+    const isAdmin = user.email === "dms@live.co.za";
     
-    // Instead of using window.location.href which causes a full page reload,
-    // we'll return a success flag that the component can use to refresh the data
-    return;
-  } catch (error: any) {
-    console.error("Generate trial license error:", error);
-    
-    // Extract error message from response if available
-    const errorMessage = error.response?.data?.message || error.message || "There was an error generating your trial license. Please try again or contact support.";
-    
+    // Only check for existing licenses if not admin
+    if (!isAdmin && existingLicenses && existingLicenses.length > 0) {
+      throw new Error("You already have a license. Trial licenses are only available for new users.");
+    }
+
+    // Generate trial license
+    const response = await fetch("/api/licenses/trial", {
+      method: "POST",
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to generate trial license");
+    }
+
+    // Invalidate the licenses query to refresh the data
+    await queryClient.invalidateQueries({ queryKey: ["userLicenses"] });
+
+    return true;
+  } catch (error) {
+    console.error("Error generating trial license:", error);
     toast({
-      title: "Trial activation failed",
-      description: errorMessage,
+      title: "Error",
+      description: error instanceof Error ? error.message : "Failed to generate trial license",
       variant: "destructive",
     });
     throw error;

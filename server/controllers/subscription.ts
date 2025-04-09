@@ -135,10 +135,17 @@ export const cancelSubscription = async (req: Request, res: Response) => {
     }
 
     const userId = (req.user as any).id;
-    const subscriptionId = req.params.id;
+    const subscriptionId = parseInt(req.params.id);
+
+    if (isNaN(subscriptionId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid subscription ID"
+      });
+    }
 
     // Get subscription from storage
-    const subscription = await storage.getSubscription(parseInt(subscriptionId));
+    const subscription = await storage.getSubscription(subscriptionId);
 
     if (!subscription) {
       return res.status(404).json({
@@ -193,6 +200,13 @@ export const getSubscription = async (req: Request, res: Response) => {
     const userId = (req.user as any).id;
     const subscriptionId = parseInt(req.params.id);
 
+    if (isNaN(subscriptionId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid subscription ID"
+      });
+    }
+
     // Get subscription from storage
     const subscription = await storage.getSubscription(subscriptionId);
 
@@ -245,7 +259,7 @@ export const getUserSubscriptions = async (req: Request, res: Response) => {
 
     // Find the most recent active subscription (if any)
     const activeSubscription = subscriptions
-      .filter(sub => sub.status === "active")
+      .filter(sub => sub.status === "active" && sub.id && !isNaN(sub.id))
       .sort((a, b) => {
         // Ensure dates are valid before comparing
         const dateA = a.startDate ? new Date(a.startDate).getTime() : 0;

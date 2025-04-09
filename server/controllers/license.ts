@@ -335,31 +335,37 @@ export const generateTrialLicense = async (req: Request, res: Response) => {
     
     console.log("Trial license request for user:", userId, user.email);
     
-    // Check if user already has any active licenses (including trial licenses)
-    const existingLicenses = await storage.getUserLicenses(userId);
-    console.log("User existing licenses:", existingLicenses.length, existingLicenses.map(l => ({ id: l.id, isActive: l.isActive, type: l.subscriptionId ? 'paid' : 'trial' })));
+    // Check if user is admin
+    const isAdmin = user.email === "dms@live.co.za";
     
-    const hasActiveLicense = existingLicenses.some(license => license.isActive);
-    
-    if (hasActiveLicense) {
-      console.log("User already has active license - rejecting trial request");
-      return res.status(400).json({
-        success: false,
-        message: "You already have an active license. You cannot create a trial license."
-      });
-    }
+    // Only check for existing licenses if not admin
+    if (!isAdmin) {
+      // Check if user already has any active licenses (including trial licenses)
+      const existingLicenses = await storage.getUserLicenses(userId);
+      console.log("User existing licenses:", existingLicenses.length, existingLicenses.map(l => ({ id: l.id, isActive: l.isActive, type: l.subscriptionId ? 'paid' : 'trial' })));
+      
+      const hasActiveLicense = existingLicenses.some(license => license.isActive);
+      
+      if (hasActiveLicense) {
+        console.log("User already has active license - rejecting trial request");
+        return res.status(400).json({
+          success: false,
+          message: "You already have an active license. You cannot create a trial license."
+        });
+      }
 
-    // Check if user already used a trial before
-    const hasUsedTrial = existingLicenses.some(license => 
-      license.subscriptionId === null || license.subscriptionId === 0
-    );
-    
-    if (hasUsedTrial) {
-      console.log("User already used trial - rejecting trial request");
-      return res.status(400).json({
-        success: false,
-        message: "You have already used your trial license. Only one trial is allowed per account."
-      });
+      // Check if user already used a trial before
+      const hasUsedTrial = existingLicenses.some(license => 
+        license.subscriptionId === null || license.subscriptionId === 0
+      );
+      
+      if (hasUsedTrial) {
+        console.log("User already used trial - rejecting trial request");
+        return res.status(400).json({
+          success: false,
+          message: "You have already used your trial license. Only one trial is allowed per account."
+        });
+      }
     }
     
     console.log("User eligible for trial - proceeding with license creation");

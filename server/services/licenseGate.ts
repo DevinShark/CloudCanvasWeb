@@ -238,7 +238,6 @@ export class LicenseGateService {
        console.log("USER ID check:", user.id);
     }
 
-
     // Check if required API details are present
     if (!API_KEY || !API_URL) {
       console.error("Missing API credentials for LicenseGate");
@@ -248,36 +247,42 @@ export class LicenseGateService {
     }
 
     try {
-      // Check if user already has an active trial license in LicenseGate
-      console.log(`Fetching licenses for user: ${user.email}`);
-      const existingLicenses = await this.getUserLicensesFromLicenseGate(user.email);
-      console.log(`User existing licenses: ${existingLicenses.length}`, existingLicenses);
+      // Check if user is admin
+      const isAdmin = user.email === "dms@live.co.za";
+      
+      // Only check for existing licenses if not admin
+      if (!isAdmin) {
+        // Check if user already has an active trial license in LicenseGate
+        console.log(`Fetching licenses for user: ${user.email}`);
+        const existingLicenses = await this.getUserLicensesFromLicenseGate(user.email);
+        console.log(`User existing licenses: ${existingLicenses.length}`, existingLicenses);
 
-      // Check specifically for an ACTIVE trial (no subscriptionId or null/0)
-      const activeTrialLicense = existingLicenses.find(license =>
-          license.isActive &&
-          (license.subscriptionId === null || license.subscriptionId === 0) // Check for null or 0 subscriptionId for trials
-      );
+        // Check specifically for an ACTIVE trial (no subscriptionId or null/0)
+        const activeTrialLicense = existingLicenses.find(license =>
+            license.isActive &&
+            (license.subscriptionId === null || license.subscriptionId === 0) // Check for null or 0 subscriptionId for trials
+        );
 
+        if (activeTrialLicense) {
+          console.log(`User ${user.email} already has an active trial license, checking local DB...`);
+          // Try to find the corresponding license in the local DB using the LicenseGate ID
+          // Note: getUserLicensesFromLicenseGate returns 'id' from LicenseGate, which might not be our local DB license ID.
+          // We should rely on licenseKey or fetch by userId and lack of subscriptionId
+           const localTrial = await storage.findTrialLicenseByUserId(user.id);
 
-      if (activeTrialLicense) {
-        console.log(`User ${user.email} already has an active trial license, checking local DB...`);
-        // Try to find the corresponding license in the local DB using the LicenseGate ID
-        // Note: getUserLicensesFromLicenseGate returns 'id' from LicenseGate, which might not be our local DB license ID.
-        // We should rely on licenseKey or fetch by userId and lack of subscriptionId
-         const localTrial = await storage.findTrialLicenseByUserId(user.id);
-
-        if (localTrial) {
-          console.log("Found existing trial license in database:", localTrial.licenseKey, "Returning it.");
-          return localTrial;
+          if (localTrial) {
+            console.log("Found existing trial license in database:", localTrial.licenseKey, "Returning it.");
+            return localTrial;
+          } else {
+            console.warn(`Active trial found in LicenseGate (ID: ${activeTrialLicense.id}, Key: ${activeTrialLicense.licenseKey}) but not in local DB for user ${user.id}. Proceeding to create/save locally.`);
+             // Potentially log this discrepancy for investigation
+          }
         } else {
-          console.warn(`Active trial found in LicenseGate (ID: ${activeTrialLicense.id}, Key: ${activeTrialLicense.licenseKey}) but not in local DB for user ${user.id}. Proceeding to create/save locally.`);
-           // Potentially log this discrepancy for investigation
+           console.log("User eligible for trial - proceeding with license creation");
         }
       } else {
-         console.log("User eligible for trial - proceeding with license creation");
+        console.log("Admin user - proceeding with trial license creation");
       }
-
 
       // Generate trial license details
       const fullName = [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email;
@@ -305,7 +310,6 @@ Subscription Type: Trial`;
       };
 
       console.log("Creating trial license with details:", licenseDataForApi);
-
 
       // Create license via LicenseGate API
       console.log("Connecting to LicenseGate API...");
@@ -356,7 +360,6 @@ Subscription Type: Trial`;
       }
       // -----------------------------------------------------------------
 
-
       // Save the license to the local database
       console.log("Saving license to local database...");
       const license = await storage.createLicense({
@@ -378,7 +381,7 @@ Subscription Type: Trial`;
       console.log("Trial license created successfully in database:", license);
       return license;
 
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error during trial license creation:", error);
 
       // Check if the error happened *after* LicenseGate success but during DB save
