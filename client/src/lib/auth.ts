@@ -3,6 +3,7 @@ import { InsertUser, LoginData, User } from "@shared/schema";
 import { toast } from "@/hooks/use-toast";
 import axios from 'axios';
 import { LicenseDetails } from "@/types";
+import { getApiUrl } from "@/config";
 
 // Re-export the LicenseDetails type
 export type { LicenseDetails };
@@ -116,15 +117,17 @@ export async function resetPassword(token: string, newPassword: string): Promise
  */
 export async function getCurrentUser(): Promise<User> {
   try {
-    const response = await apiRequest("GET", "/api/auth/me");
-    const data = await response.json();
-    if (!data.success) {
-      throw new Error(data.message || "Failed to get current user");
+    const response = await fetch(getApiUrl("/api/auth/me"), {
+      credentials: "include",
+    });
+    if (!response.ok) {
+      return null;
     }
+    const data = await response.json();
     return data.user;
   } catch (error) {
-    console.error("Get current user error:", error);
-    throw error;
+    console.error("Error fetching current user:", error);
+    return null;
   }
 }
 
@@ -147,19 +150,18 @@ export async function updateUserProfile(userData: Partial<InsertUser>): Promise<
 // --- NEW FUNCTION --- 
 export const fetchUserLicenses = async (): Promise<LicenseDetails[]> => {
   try {
-    // The backend route is /api/licenses/me
-    const response = await axios.get<{ success: boolean; licenses: LicenseDetails[] }>("/api/licenses/me");
+    const response = await axios.get<{ success: boolean; licenses: LicenseDetails[] }>(
+      getApiUrl("/api/licenses/me")
+    );
     
     if (response.data.success) {
       return response.data.licenses;
     } else {
-      // Handle potential backend success:false scenarios if needed
       console.error("Backend indicated failure fetching licenses", response.data);
-      return []; // Or throw an error
+      return [];
     }
   } catch (error: any) {
     console.error("Error fetching user licenses:", error);
-    // Re-throw the error so react-query can handle it (isLoading, isError)
     throw error;
   }
 };
