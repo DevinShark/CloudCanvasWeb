@@ -113,8 +113,9 @@ export async function generateTrialLicense(): Promise<void> {
       description: "Your 7-day trial license has been generated and sent to your email.",
     });
     
-    // Instead of reloading the page, navigate to the dashboard
-    window.location.href = "/dashboard";
+    // Instead of using window.location.href which causes a full page reload,
+    // we'll return a success flag that the component can use to refresh the data
+    return;
   } catch (error: any) {
     console.error("Generate trial license error:", error);
     

@@ -36,22 +36,14 @@ const UserDashboard = () => {
   
   const handleGenerateTrial = async () => {
     try {
-      setIsGeneratingTrial(true);
       await generateTrialLicense();
-      await queryClient.invalidateQueries({ queryKey: ["userLicenses", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["userLicenses"] });
       toast({
-        title: "Success",
-        description: "Trial license generated successfully!",
+        title: "Trial activated",
+        description: "Your 7-day trial license has been generated and sent to your email.",
       });
     } catch (error) {
-      console.error("Failed to generate trial license:", error);
-      toast({
-        title: "Error",
-        description: "Failed to generate trial license. Please try again later.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGeneratingTrial(false);
+      console.error("Error generating trial license:", error);
     }
   };
   

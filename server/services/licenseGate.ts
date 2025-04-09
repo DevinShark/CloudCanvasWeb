@@ -285,7 +285,10 @@ export class LicenseGateService {
       expiryDate.setDate(expiryDate.getDate() + trialDays);
 
       // Format notes for trial license
-      const notes = `CloudCanvas Trial License\\nEmail: ${user.email}\\nPlan: Trial\\nSubscription Type: Trial`;
+      const notes = `CloudCanvas Trial License
+Email: ${user.email}
+Plan: Trial
+Subscription Type: Trial`;
 
       const licenseDataForApi = {
         active: true,
