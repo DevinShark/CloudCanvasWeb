@@ -23,7 +23,11 @@ router.get("/user", requireAuth, async (req, res) => {
       });
     }
 
-    const userId = Number((req.user as any).id);
+    // Get the user ID, ensuring it's a number
+    const userId = typeof (req.user as any).id === 'string' 
+      ? parseInt((req.user as any).id, 10) 
+      : Number((req.user as any).id);
+    
     if (isNaN(userId)) {
       console.error("Invalid user ID:", (req.user as any).id);
       return res.status(400).json({

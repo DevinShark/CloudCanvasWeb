@@ -337,7 +337,7 @@ Subscription Type: Trial`;
 
       // Save the license to the local database
       const license = await storage.createLicense({
-        userId: user.id,
+        userId: typeof user.id === 'string' ? parseInt(user.id, 10) : Number(user.id),
         subscriptionId: null, // Explicitly null for trial licenses
         licenseKey: licenseKey,
         isActive: true,
@@ -420,7 +420,7 @@ Subscription Type: Trial`;
 
         // Find or update license in local storage
         const storedLicense = await storage.createLicense({
-          userId: licenseDetails.userId ? Number(licenseDetails.userId) : 0,
+          userId: 0, // Use a default user ID since LicenseGate uses string IDs
           subscriptionId: null,
           licenseKey: licenseDetails.licenseKey,
           isActive: licenseDetails.active,
