@@ -152,7 +152,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/licenses/deactivate/:id", requireAuth, licenseController.deactivateLicense);
   app.post("/api/licenses/reactivate/:id", requireAuth, licenseController.reactivateLicense);
   app.get("/api/licenses/:id", requireAuth, licenseController.getLicense);
-  app.get("/api/licenses/user", requireAuth, licenseController.getUserLicenses);
   
   // Add the new endpoint to fetch licenses directly from LicenseGate
   app.get("/api/licenses/me", requireAuth, async (req, res, next) => {
