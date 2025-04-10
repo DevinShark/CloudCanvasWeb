@@ -116,17 +116,50 @@ export class PostgresStorage implements IStorage {
     }
   }
 
-  async createLicense(licenseData: InsertLicense): Promise<License> {
-    // Ensure dates are Date objects before insertion
-    const dataToInsert = {
-      ...licenseData,
-      expiryDate: licenseData.expiryDate instanceof Date ? licenseData.expiryDate : new Date(licenseData.expiryDate || Date.now()),
-      createdAt: licenseData.createdAt instanceof Date ? licenseData.createdAt : new Date(licenseData.createdAt || Date.now())
-    };
-    const results = await db.insert(licenses)
-      .values(dataToInsert)
-      .returning();
-    return results[0];
+  async createLicense(license: Omit<License, "id">): Promise<License> {
+    try {
+      // Ensure userId is a valid integer
+      const userId = typeof license.userId === 'string' 
+        ? parseInt(license.userId, 10) 
+        : Number(license.userId);
+
+      if (isNaN(userId)) {
+        throw new Error(`Invalid user ID: ${license.userId}`);
+      }
+
+      // Ensure dates are Date objects
+      const expiryDate = license.expiryDate instanceof Date 
+        ? license.expiryDate 
+        : new Date(license.expiryDate);
+      const createdAt = license.createdAt instanceof Date 
+        ? license.createdAt 
+        : new Date(license.createdAt);
+
+      const result = await this.pool.query(
+        `INSERT INTO licenses (
+          user_id, 
+          subscription_id, 
+          license_key, 
+          is_active, 
+          expiry_date, 
+          created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6) 
+        RETURNING *`,
+        [
+          userId,
+          license.subscriptionId,
+          license.licenseKey,
+          license.isActive,
+          expiryDate,
+          createdAt
+        ]
+      );
+
+      return result.rows[0];
+    } catch (error) {
+      console.error("Error creating license:", error);
+      throw error;
+    }
   }
 
   async updateLicense(id: number, updates: Partial<License>): Promise<License | undefined> {

@@ -3,6 +3,7 @@ import { generateLicense, generateTrialLicense } from "../controllers/license";
 import { requireAuth } from "../middleware/auth";
 import { License, User } from "../../shared/schema";
 import { storage } from "../storage";
+import { Request, Response } from "express";
 
 const router = Router();
 
@@ -48,6 +49,26 @@ router.get("/me", requireAuth, async (req, res, next) => {
     return res.status(500).json({ 
       success: false, 
       message: "An unexpected error occurred while fetching licenses from DB"
+    });
+  }
+});
+
+router.get("/user/:userId", async (req: Request, res: Response) => {
+  try {
+    const userId = parseInt(req.params.userId, 10);
+    
+    if (isNaN(userId)) {
+      return res.status(400).json({ 
+        error: "Invalid user ID format" 
+      });
+    }
+
+    const licenses = await storage.getUserLicenses(userId);
+    res.json(licenses);
+  } catch (error) {
+    console.error("Error fetching user licenses:", error);
+    res.status(500).json({ 
+      error: "Failed to fetch user licenses" 
     });
   }
 });
