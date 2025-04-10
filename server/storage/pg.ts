@@ -7,7 +7,7 @@ import {
   licenses, type License, type InsertLicense,
   demoRequests, type DemoRequest, type InsertDemoRequest,
   contactMessages, type ContactMessage, type InsertContactMessage
-} from '@shared/schema';
+} from '../../shared/schema';
 
 export class PostgresStorage implements IStorage {
   // User methods
@@ -34,16 +34,19 @@ export class PostgresStorage implements IStorage {
     return results[0];
   }
 
-  async setUserVerified(id: number, isVerified: boolean): Promise<void> {
-    await db.update(users).set({ isVerified }).where(eq(users.id, id));
+  async setUserVerified(id: number, isVerified: boolean): Promise<User | undefined> {
+    const results = await db.update(users).set({ isVerified }).where(eq(users.id, id)).returning();
+    return results[0];
   }
 
-  async updateUserVerificationToken(id: number, token: string | null): Promise<void> {
-    await db.update(users).set({ verificationToken: token }).where(eq(users.id, id));
+  async updateUserVerificationToken(id: number, token: string | null): Promise<User | undefined> {
+    const results = await db.update(users).set({ verificationToken: token }).where(eq(users.id, id)).returning();
+    return results[0];
   }
 
-  async updateUserResetToken(id: number, token: string | null): Promise<void> {
-    await db.update(users).set({ resetPasswordToken: token }).where(eq(users.id, id));
+  async updateUserResetToken(id: number, token: string | null): Promise<User | undefined> {
+    const results = await db.update(users).set({ resetPasswordToken: token }).where(eq(users.id, id)).returning();
+    return results[0];
   }
 
   async getAllUsers(): Promise<User[]> {
@@ -116,7 +119,7 @@ export class PostgresStorage implements IStorage {
     }
   }
 
-  async createLicense(license: Omit<License, "id">): Promise<License> {
+  async createLicense(license: InsertLicense): Promise<License> {
     try {
       // Ensure userId is a valid integer
       const userId = typeof license.userId === 'string' 
@@ -127,52 +130,76 @@ export class PostgresStorage implements IStorage {
         throw new Error(`Invalid user ID: ${license.userId}`);
       }
 
-      // Ensure dates are Date objects
-      const expiryDate = license.expiryDate instanceof Date 
-        ? license.expiryDate 
-        : new Date(license.expiryDate);
-      const createdAt = license.createdAt instanceof Date 
-        ? license.createdAt 
-        : new Date(license.createdAt);
+      // Ensure dates are properly handled
+      let expiryDate: Date;
+      if (license.expiryDate) {
+        expiryDate = typeof license.expiryDate === 'string'
+          ? new Date(license.expiryDate)
+          : license.expiryDate;
+      } else {
+        // Default expiry date if not provided
+        expiryDate = new Date();
+        expiryDate.setFullYear(expiryDate.getFullYear() + 1); // Default to 1 year
+      }
 
-      const result = await this.pool.query(
-        `INSERT INTO licenses (
-          user_id, 
-          subscription_id, 
-          license_key, 
-          is_active, 
-          expiry_date, 
-          created_at
-        ) VALUES ($1, $2, $3, $4, $5, $6) 
-        RETURNING *`,
-        [
-          userId,
-          license.subscriptionId,
-          license.licenseKey,
-          license.isActive,
-          expiryDate,
-          createdAt
-        ]
-      );
+      let createdAt: Date;
+      if (license.createdAt) {
+        createdAt = typeof license.createdAt === 'string'
+          ? new Date(license.createdAt)
+          : license.createdAt;
+      } else {
+        createdAt = new Date(); // Default to current date
+      }
 
-      return result.rows[0];
+      // Use drizzle-orm to insert the license
+      const results = await db.insert(licenses)
+        .values({
+          ...license,
+          userId: userId,
+          expiryDate: expiryDate,
+          createdAt: createdAt
+        })
+        .returning();
+
+      return results[0];
     } catch (error) {
       console.error("Error creating license:", error);
       throw error;
     }
   }
 
-  async updateLicense(id: number, updates: Partial<License>): Promise<License | undefined> {
-    // Ensure dates are Date objects if provided in updates
-    const dataToUpdate = { ...updates };
+  async updateLicense(id: number, updates: Partial<InsertLicense>): Promise<License | undefined> {
+    // Extract and convert date fields
+    let expiryDate: Date | undefined;
+    let createdAtDate: Date | undefined;
+    
     if (updates.expiryDate) {
-      dataToUpdate.expiryDate = updates.expiryDate instanceof Date ? updates.expiryDate : new Date(updates.expiryDate);
+      expiryDate = typeof updates.expiryDate === 'string' 
+        ? new Date(updates.expiryDate) 
+        : updates.expiryDate;
     }
-     if (updates.createdAt) { // Handle createdAt if it can be updated
-       dataToUpdate.createdAt = updates.createdAt instanceof Date ? updates.createdAt : new Date(updates.createdAt);
-     }
+    
+    if (updates.createdAt) {
+      createdAtDate = typeof updates.createdAt === 'string'
+        ? new Date(updates.createdAt)
+        : updates.createdAt;
+    }
+    
+    // Create a new update object without date fields
+    const { expiryDate: _, createdAt: __, ...otherUpdates } = updates;
+    
+    // Combine other updates with properly converted dates
+    const updateData = {
+      ...otherUpdates,
+      ...(expiryDate && { expiryDate }),
+      ...(createdAtDate && { createdAt: createdAtDate })
+    };
 
-    const results = await db.update(licenses).set(dataToUpdate).where(eq(licenses.id, id)).returning();
+    const results = await db.update(licenses)
+      .set(updateData)
+      .where(eq(licenses.id, id))
+      .returning();
+      
     return results[0];
   }
 

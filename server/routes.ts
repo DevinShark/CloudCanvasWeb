@@ -6,6 +6,7 @@ import { MemoryStore } from "express-session";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import bcrypt from "bcryptjs";
+import axios from "axios";
 
 // Import controllers
 import * as authController from "./controllers/auth";
@@ -174,7 +175,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Make direct axios request to match the Python script exactly
-      const axios = require("axios");
       const response = await axios.get(
         `${API_URL}/admin/licenses?email=${encodeURIComponent(user.email)}`,
         {
