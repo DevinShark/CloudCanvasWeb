@@ -89,7 +89,7 @@ export class PostgresStorage implements IStorage {
   }
 
   async getUserLicenses(userId: number): Promise<License[]> {
-    console.log("PostgresStorage.getUserLicenses called with userId:", {
+    console.error("[DEBUG] PostgresStorage.getUserLicenses called with userId:", {
       value: userId,
       type: typeof userId,
       isNaN: isNaN(userId)
@@ -97,13 +97,13 @@ export class PostgresStorage implements IStorage {
     
     try {
       const results = await db.select().from(licenses).where(eq(licenses.userId, userId));
-      console.log("Query results:", {
+      console.error("[DEBUG] Query results:", {
         count: results.length,
         userIds: results.map(l => l.userId)
       });
       return results;
     } catch (error) {
-      console.error("Error in getUserLicenses:", error);
+      console.error("[DEBUG] Error in getUserLicenses:", error);
       throw error;
     }
   }

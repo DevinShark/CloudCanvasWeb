@@ -17,7 +17,7 @@ router.post("/trial", requireAuth, generateTrialLicense);
 router.get("/user", requireAuth, async (req, res) => {
   try {
     if (!req.user) {
-      console.error("No user object in request");
+      console.error("[DEBUG] No user object in request");
       return res.status(401).json({
         success: false,
         message: "Unauthorized"
@@ -25,7 +25,7 @@ router.get("/user", requireAuth, async (req, res) => {
     }
 
     // Add detailed logging
-    console.log("User object:", {
+    console.error("[DEBUG] User object:", {
       id: (req.user as any).id,
       type: typeof (req.user as any).id,
       email: (req.user as any).email,
@@ -37,7 +37,7 @@ router.get("/user", requireAuth, async (req, res) => {
       ? parseInt((req.user as any).id, 10) 
       : Number((req.user as any).id);
     
-    console.log("Parsed userId:", {
+    console.error("[DEBUG] Parsed userId:", {
       value: userId,
       type: typeof userId,
       isNaN: isNaN(userId),
@@ -45,7 +45,7 @@ router.get("/user", requireAuth, async (req, res) => {
     });
     
     if (isNaN(userId)) {
-      console.error("Invalid user ID:", {
+      console.error("[DEBUG] Invalid user ID:", {
         original: (req.user as any).id,
         parsed: userId,
         type: typeof userId,
@@ -57,18 +57,18 @@ router.get("/user", requireAuth, async (req, res) => {
       });
     }
 
-    console.log("Fetching licenses for userId:", userId);
+    console.error("[DEBUG] Fetching licenses for userId:", userId);
     const licenses = await storage.getUserLicenses(userId);
-    console.log("Found licenses:", {
+    console.error("[DEBUG] Found licenses:", {
       count: licenses?.length || 0,
       licenses: licenses?.map(l => ({ id: l.id, userId: l.userId, isActive: l.isActive }))
     });
     
     res.json(licenses || []);
   } catch (error) {
-    console.error("Error fetching user licenses:", error);
+    console.error("[DEBUG] Error fetching user licenses:", error);
     if (error instanceof Error) {
-      console.error("Error details:", {
+      console.error("[DEBUG] Error details:", {
         message: error.message,
         stack: error.stack
       });
