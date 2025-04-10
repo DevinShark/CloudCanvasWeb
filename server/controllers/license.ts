@@ -157,30 +157,6 @@ export const getLicense = async (req: Request, res: Response) => {
   }
 };
 
-// Get all licenses for the current user
-export const getUserLicenses = async (req: Request, res: Response) => {
-  try {
-    if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized"
-      });
-    }
-
-    const userId = (req.user as any).id;
-
-    // Get all licenses for the user
-    const licenses = await storage.getUserLicenses(userId);
-    
-    // Always return an array (empty if no licenses)
-    res.status(200).json(licenses || []);
-  } catch (error) {
-    console.error("Get user licenses error:", error);
-    // Return empty array instead of error to prevent frontend issues
-    res.status(200).json([]);
-  }
-};
-
 // Deactivate a license
 export const deactivateLicense = async (req: Request, res: Response) => {
   try {
