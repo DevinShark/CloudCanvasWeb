@@ -46,7 +46,18 @@ export async function getUserLicenses(): Promise<any[]> {
  */
 export async function getLicenseDetails(licenseId: string): Promise<any> {
   try {
-    const response = await apiRequest("GET", `/api/licenses/${licenseId}`);
+    // Log for debugging
+    console.log("Getting license details for:", licenseId);
+    
+    // First check if it's a numeric ID (for fetching from our DB)
+    // or a license key string (for fetching from LicenseGate)
+    const isNumericId = /^\d+$/.test(licenseId);
+    
+    let endpoint = isNumericId 
+      ? `/api/licenses/${licenseId}`      // Local DB ID
+      : `/api/licenses/key/${licenseId}`; // LicenseGate API key
+
+    const response = await apiRequest("GET", endpoint);
     return response.json();
   } catch (error) {
     console.error("Get license details error:", error);

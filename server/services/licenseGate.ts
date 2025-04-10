@@ -379,6 +379,13 @@ Subscription Type: Trial`;
     license?: License;
   }> {
     try {
+      console.log("Validating license with key:", licenseKey);
+      
+      if (!licenseKey || typeof licenseKey !== 'string') {
+        console.error("Invalid license key format:", licenseKey);
+        return { isValid: false, message: "Invalid license key format" };
+      }
+
       const response = await axios.get(
         `${API_URL}/admin/licenses/${licenseKey}`,
         {

@@ -4,6 +4,7 @@ import { requireAuth } from "../middleware/auth";
 import { License, User } from "../../shared/schema";
 import { storage } from "../storage";
 import { Request, Response } from "express";
+import { LicenseGateService } from "../services/licenseGate";
 
 const router = Router();
 
@@ -69,6 +70,49 @@ router.get("/user/:userId", async (req: Request, res: Response) => {
     console.error("Error fetching user licenses:", error);
     res.status(500).json({ 
       error: "Failed to fetch user licenses" 
+    });
+  }
+});
+
+// Get license by key (for LicenseGate API calls)
+router.get("/key/:licenseKey", requireAuth, async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized"
+      });
+    }
+
+    const licenseKey = req.params.licenseKey;
+    console.log("Fetching license by key:", licenseKey);
+    
+    if (!licenseKey) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid license key format"
+      });
+    }
+
+    // Validate the license with LicenseGate API
+    const result = await LicenseGateService.validateLicense(licenseKey);
+
+    if (!result.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: result.message || "License validation failed"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      license: result.license
+    });
+  } catch (error) {
+    console.error("Get license by key error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error during license validation"
     });
   }
 });
