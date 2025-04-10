@@ -48,6 +48,11 @@ const LicenseCard = ({ license }: LicenseCardProps) => {
   const remainingDays = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 3600 * 24));
   const isExpired = today > expiryDate;
 
+  // A license cannot be both active and expired at the same time
+  // If the expiry date has passed, the license should be considered inactive,
+  // regardless of what the isActive flag says
+  const actuallyActive = license.isActive && !isExpired;
+
   return (
     <Card>
       <CardContent className="p-6">
@@ -55,9 +60,15 @@ const LicenseCard = ({ license }: LicenseCardProps) => {
           <div className="mb-4 sm:mb-0">
             <div className="flex flex-wrap items-center gap-2 mb-2">
               <h3 className="text-lg font-semibold">License Key</h3>
-              <Badge variant={license.isActive ? "default" : "outline"} className={license.isActive ? "bg-green-600" : ""}>
-                {license.isActive ? "Active" : "Inactive"}
-              </Badge>
+              {isExpired ? (
+                <Badge variant="outline" className="bg-red-100 text-red-800 border-red-300">
+                  Expired
+                </Badge>
+              ) : (
+                <Badge variant={actuallyActive ? "default" : "outline"} className={actuallyActive ? "bg-green-600" : ""}>
+                  {actuallyActive ? "Active" : "Inactive"}
+                </Badge>
+              )}
               
               {/* Show appropriate badge based on license type */}
               {isTrial ? (
@@ -91,17 +102,10 @@ const LicenseCard = ({ license }: LicenseCardProps) => {
             <div className="text-sm text-gray-500 space-y-1">
               <p>Expires: {formatDate(expiryDate)}</p>
               
-              {/* Show trial-specific information */}
+              {/* Show trial-specific information, but only if not expired */}
               {isTrial && !isExpired && (
                 <p className="font-medium text-blue-600">
                   {remainingDays} day{remainingDays !== 1 ? 's' : ''} remaining
-                </p>
-              )}
-              
-              {/* Show expired warning */}
-              {isExpired && (
-                <p className="font-medium text-red-600">
-                  Expired
                 </p>
               )}
             </div>

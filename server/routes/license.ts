@@ -68,6 +68,23 @@ router.get("/me", requireAuth, async (req, res, next) => {
         // This is the raw API response - the method didn't fully transform it
         const notes = lgLicense.notes || '';
         
+        // Perform strict email matching to ensure we only get user-specific licenses
+        // Look for common patterns like "Email: user@example.com" or "Email - user@example.com"
+        const emailPatterns = [
+          `Email: ${user.email}`,
+          `Email - ${user.email}`,
+          `email: ${user.email}`,
+          `email - ${user.email}`
+        ];
+        
+        // Skip if none of the email patterns match
+        if (!emailPatterns.some(pattern => notes.includes(pattern))) {
+          console.log("[DEBUG] Skipping license", lgLicense.licenseKey, "- email doesn't match user:", user.email);
+          continue;
+        }
+        
+        console.log("[DEBUG] License matches user email:", lgLicense.licenseKey);
+        
         // Check for plan in notes
         if (notes.includes('Trial')) {
           plan = 'trial';
@@ -85,37 +102,40 @@ router.get("/me", requireAuth, async (req, res, next) => {
                   notes.includes('Annual') || notes.includes('- Annual')) {
           billingType = 'annual';
         }
-        
-        // Skip licenses that don't match the user's email
-        if (!notes.includes(user.email)) {
-          console.log("[DEBUG] Skipping license", lgLicense.licenseKey, "- email doesn't match");
-          continue;
-        }
       } else if (lgLicense.plan) {
         // If the license already has plan info (transformed by service)
         plan = lgLicense.plan;
       }
       
+      // Check if the license is expired - override isActive flag
+      const expiryDate = new Date(lgLicense.expirationDate || lgLicense.expiryDate);
+      const now = new Date();
+      // If expiry date is in the past, license is not active regardless of the isActive flag
+      const isExpired = expiryDate < now;
+      const isActive = isExpired ? false : (lgLicense.active || lgLicense.isActive);
+      
       // Update existing license or add new one
       if (licensesByKey.has(lgLicense.licenseKey)) {
         licensesByKey.set(lgLicense.licenseKey, {
           ...licensesByKey.get(lgLicense.licenseKey),
-          isActive: lgLicense.active || lgLicense.isActive,
+          isActive: isActive,
           expiryDate: lgLicense.expirationDate || lgLicense.expiryDate,
           plan,
-          billingType
+          billingType,
+          isExpired // Add explicit expired flag
         });
       } else {
         licensesByKey.set(lgLicense.licenseKey, {
           id: lgLicense.id || 0,
           userId,
           licenseKey: lgLicense.licenseKey,
-          isActive: lgLicense.active || lgLicense.isActive,
+          isActive: isActive,
           expiryDate: lgLicense.expirationDate || lgLicense.expiryDate,
           createdAt: lgLicense.createdAt,
           subscriptionId: null,
           plan,
-          billingType
+          billingType,
+          isExpired // Add explicit expired flag
         });
       }
     }
