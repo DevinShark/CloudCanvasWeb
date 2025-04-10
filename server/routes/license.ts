@@ -27,11 +27,45 @@ router.get("/me", requireAuth, async (req, res, next) => {
     }
 
     const userId = user.id;
+    console.log("[DEBUG] Fetching licenses for user ID:", userId);
     const licenses: License[] = await storage.getUserLicenses(userId);
+    console.log("[DEBUG] Found licenses in DB:", licenses.length, licenses.map(l => l.licenseKey));
+    
+    // Enrich licenses with additional information
+    const enrichedLicenses = await Promise.all(licenses.map(async (license) => {
+      // Create a basic enriched license from DB data
+      const enrichedLicense = {
+        ...license,
+        // If subscriptionId is null or 0, it's a trial license
+        plan: !license.subscriptionId ? 'trial' : undefined
+      };
+
+      try {
+        // Optionally validate with LicenseGate to get the most current status
+        const validationResult = await LicenseGateService.validateLicense(license.licenseKey);
+        
+        if (validationResult.isValid && validationResult.license) {
+          // Update with external validation data if available
+          return {
+            ...enrichedLicense,
+            isActive: validationResult.license.isActive,
+            expiryDate: validationResult.license.expiryDate
+          };
+        }
+      } catch (validationError) {
+        // If validation fails, just use the DB data
+        console.warn(`License validation failed for ${license.licenseKey}:`, validationError);
+        // Don't throw - continue with the data we have
+      }
+      
+      return enrichedLicense;
+    }));
+    
+    console.log("[DEBUG] Returning enriched licenses:", enrichedLicenses.length);
     
     return res.status(200).json({ 
       success: true, 
-      licenses: licenses || [] 
+      licenses: enrichedLicenses || [] 
     });
 
   } catch (error) {

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatPlanName } from "@/lib/utils";
 import { LicenseDetails } from "@/types";
 
 interface LicenseCardProps {
@@ -39,6 +39,15 @@ const LicenseCard = ({ license }: LicenseCardProps) => {
     });
   };
 
+  // Determine if this is a trial license
+  const isTrial = license.subscriptionId === null || license.subscriptionId === 0 || license.plan === 'trial';
+  
+  // Calculate remaining days if it's a trial
+  const expiryDate = new Date(license.expiryDate);
+  const today = new Date();
+  const remainingDays = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 3600 * 24));
+  const isExpired = today > expiryDate;
+
   return (
     <Card>
       <CardContent className="p-6">
@@ -49,10 +58,15 @@ const LicenseCard = ({ license }: LicenseCardProps) => {
               <Badge variant={license.isActive ? "default" : "outline"} className={license.isActive ? "bg-green-600" : ""}>
                 {license.isActive ? "Active" : "Inactive"}
               </Badge>
-              {/* Show Trial badge if license has no subscription ID */}
-              {(license.subscriptionId === null || license.subscriptionId === 0) && (
+              
+              {/* Show appropriate badge based on license type */}
+              {isTrial ? (
                 <Badge variant="secondary" className="bg-blue-600 text-white">
                   Trial
+                </Badge>
+              ) : (
+                <Badge variant="secondary">
+                  {formatPlanName(license.plan || 'standard')}
                 </Badge>
               )}
             </div>
@@ -74,8 +88,22 @@ const LicenseCard = ({ license }: LicenseCardProps) => {
               </button>
             </div>
             
-            <div className="text-sm text-gray-500">
-              <p>Expires: {formatDate(new Date(license.expiryDate))}</p>
+            <div className="text-sm text-gray-500 space-y-1">
+              <p>Expires: {formatDate(expiryDate)}</p>
+              
+              {/* Show trial-specific information */}
+              {isTrial && !isExpired && (
+                <p className="font-medium text-blue-600">
+                  {remainingDays} day{remainingDays !== 1 ? 's' : ''} remaining
+                </p>
+              )}
+              
+              {/* Show expired warning */}
+              {isExpired && (
+                <p className="font-medium text-red-600">
+                  Expired
+                </p>
+              )}
             </div>
           </div>
           

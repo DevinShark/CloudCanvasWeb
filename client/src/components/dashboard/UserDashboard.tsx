@@ -49,6 +49,10 @@ const UserDashboard = () => {
   
   const isLoading = isLoadingUser || isLoadingSubscription || isLoadingLicenses || isGeneratingTrial;
   
+  // Check if the user has at least one active license
+  const hasActiveLicense = licenses && licenses.length > 0 && 
+    licenses.some(license => license.isActive);
+  
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
@@ -165,7 +169,7 @@ const UserDashboard = () => {
                     <Button 
                       variant="outline"
                       onClick={handleGenerateTrial}
-                      disabled={isGeneratingTrial}
+                      disabled={isGeneratingTrial || hasActiveLicense}
                     >
                       {isGeneratingTrial ? 'Generating Trial...' : 'Start Free Trial'}
                     </Button>
