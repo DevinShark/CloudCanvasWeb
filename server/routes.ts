@@ -81,11 +81,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Deserialize user from session
-  passport.deserializeUser(async (id: number, done) => {
+  passport.deserializeUser(async (id: any, done) => {
     try {
-      const user = await storage.getUser(id);
+      // Ensure id is a number
+      const userId = typeof id === 'string' ? parseInt(id, 10) : Number(id);
+      
+      if (isNaN(userId)) {
+        console.error("Invalid user ID during deserialization:", id);
+        return done(new Error("Invalid user ID"));
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        console.error("User not found during deserialization:", userId);
+        return done(new Error("User not found"));
+      }
+      
       done(null, user);
     } catch (error) {
+      console.error("Error in deserializeUser:", error);
       done(error);
     }
   });
