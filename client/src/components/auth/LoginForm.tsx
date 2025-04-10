@@ -33,6 +33,7 @@ const LoginForm = () => {
     setIsSubmitting(true);
     try {
       await loginUser(values);
+      console.log("Login successful, redirecting to /dashboard");
       setLocation("/dashboard");
     } catch (error) {
       console.error("Login error:", error);

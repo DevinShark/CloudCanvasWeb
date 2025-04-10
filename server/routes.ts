@@ -134,7 +134,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // License routes
   app.post("/api/licenses/generate", requireAuth, licenseController.generateLicense);
-  app.post("/api/licenses/generate-trial", requireAuth, licenseController.generateTrialLicense);
+  app.post("/api/licenses/trial", requireAuth, licenseController.generateTrialLicense);
   app.post("/api/licenses/deactivate/:id", requireAuth, licenseController.deactivateLicense);
   app.post("/api/licenses/reactivate/:id", requireAuth, licenseController.reactivateLicense);
   app.get("/api/licenses/:id", requireAuth, licenseController.getLicense);
