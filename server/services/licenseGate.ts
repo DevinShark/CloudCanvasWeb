@@ -24,6 +24,7 @@ export interface LicenseDetails {
   isActive: boolean;
   expiryDate: string; // Must be string, not null
   subscriptionId: number | null;
+  plan?: string; // Add optional plan property for frontend
 }
 
 export class LicenseGateService {
@@ -619,7 +620,8 @@ Subscription Type: Trial`;
           licenseKey: license.licenseKey,
           isActive: license.active,
           expiryDate: license.expirationDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Default to 7 days from now if not set
-          subscriptionId: null // Trial licenses don't have subscription IDs
+          subscriptionId: null, // Trial licenses don't have subscription IDs
+          plan: license.plan
         }));
       }
 
