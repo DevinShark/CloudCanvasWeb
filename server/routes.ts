@@ -143,17 +143,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/subscriptions/create", requireAuth, subscriptionController.createSubscription);
   app.post("/api/subscriptions/execute", requireAuth, subscriptionController.executeSubscription);
   app.post("/api/subscriptions/cancel/:id", requireAuth, subscriptionController.cancelSubscription);
-  app.get("/api/subscriptions/:id", requireAuth, subscriptionController.getSubscription);
   app.get("/api/subscriptions/user", requireAuth, subscriptionController.getUserSubscriptions);
+  app.get("/api/subscriptions/:id", requireAuth, subscriptionController.getSubscription);
   
   // License routes
   app.post("/api/licenses/generate", requireAuth, licenseController.generateLicense);
   app.post("/api/licenses/trial", requireAuth, licenseController.generateTrialLicense);
   app.post("/api/licenses/deactivate/:id", requireAuth, licenseController.deactivateLicense);
   app.post("/api/licenses/reactivate/:id", requireAuth, licenseController.reactivateLicense);
-  app.get("/api/licenses/:id", requireAuth, licenseController.getLicense);
   
-  // Add the new endpoint to fetch licenses directly from LicenseGate
+  // Add the new endpoint to fetch licenses directly from LicenseGate - SPECIFIC ROUTES FIRST
   app.get("/api/licenses/me", requireAuth, async (req, res, next) => {
     try {
       // Ensure user information is attached by requireAuth middleware
@@ -213,6 +212,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Do not call next(error) to prevent reaching the generic handler
     }
   });
+  
+  // Generic routes with path parameters AFTER specific routes
+  app.get("/api/licenses/:id", requireAuth, licenseController.getLicense);
   
   // Demo request route
   app.post("/api/demos/request", async (req, res) => {
