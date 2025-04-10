@@ -150,7 +150,11 @@ export const fetchUserLicenses = async (): Promise<LicenseDetails[]> => {
     );
     
     if (response.data.success) {
-      return response.data.licenses;
+      // Ensure each license has a plan property
+      return response.data.licenses.map(license => ({
+        ...license,
+        plan: license.plan || 'trial' // Default to 'trial' if no plan is set
+      }));
     } else {
       console.error("Backend indicated failure fetching licenses", response.data);
       return [];

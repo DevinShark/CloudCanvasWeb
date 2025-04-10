@@ -50,10 +50,21 @@ export function generateRandomToken(length: number = 32): string {
 }
 
 /**
- * Convert plan name to human readable format
+ * Convert plan name to human readable format with extra safety
  */
-export function formatPlanName(plan: string): string {
+export function formatPlanName(plan?: string | null): string {
+  if (!plan) return "Trial"; // Default to "Trial" if plan is undefined or empty
   return plan.charAt(0).toUpperCase() + plan.slice(1);
+}
+
+/**
+ * Safely get plan name from license object
+ * This helps prevent the 'Cannot read properties of undefined' error
+ */
+export function getLicensePlan(license: any): string {
+  if (!license) return "Trial";
+  if (!license.plan) return "Trial";
+  return license.plan;
 }
 
 /**
