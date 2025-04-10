@@ -112,7 +112,15 @@ export async function generateTrialLicense() {
     const existingLicenses = await queryClient.fetchQuery({
       queryKey: ["userLicenses"],
       queryFn: async () => {
-        const response = await apiRequest("GET", "/api/licenses/user");
+        const response = await apiRequest("GET", "/api/licenses/me");
+        if (!response.ok) {
+          try {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `API error: ${response.status}`);
+          } catch (parseError) {
+            throw new Error(`API error: ${response.status}`);
+          }
+        }
         return response.json();
       },
     });
@@ -137,11 +145,19 @@ export async function generateTrialLicense() {
     await queryClient.invalidateQueries({ queryKey: ["userLicenses"] });
 
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error generating trial license:", error);
+    
+    let errorMessage = "Failed to generate trial license";
+    if (error?.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error instanceof Error && error.message) {
+      errorMessage = error.message;
+    }
+
     toast({
       title: "Error",
-      description: error instanceof Error ? error.message : "Failed to generate trial license",
+      description: errorMessage,
       variant: "destructive",
     });
     throw error;
