@@ -420,9 +420,7 @@ Subscription Type: Trial`;
 
         // Find or update license in local storage
         const storedLicense = await storage.createLicense({
-          userId: licenseDetails.userId && !isNaN(Number(licenseDetails.userId)) 
-            ? parseInt(licenseDetails.userId.toString())
-            : 0, // Default to 0 or handle appropriately
+          userId: licenseDetails.userId ? Number(licenseDetails.userId) : 0,
           subscriptionId: null,
           licenseKey: licenseDetails.licenseKey,
           isActive: licenseDetails.active,

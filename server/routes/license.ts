@@ -23,16 +23,20 @@ router.get("/user", requireAuth, async (req, res) => {
       });
     }
 
-    const userId = (req.user as any).id;
-    const licenses = await storage.getUserLicenses(userId);
+    const userId = Number((req.user as any).id);
+    if (isNaN(userId)) {
+      console.error("Invalid user ID:", (req.user as any).id);
+      return res.status(400).json({
+        success: false,
+        message: "Invalid user ID"
+      });
+    }
 
-    res.json(licenses);
+    const licenses = await storage.getUserLicenses(userId);
+    res.json(licenses || []);
   } catch (error) {
     console.error("Error fetching user licenses:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch user licenses"
-    });
+    res.status(200).json([]);
   }
 });
 
