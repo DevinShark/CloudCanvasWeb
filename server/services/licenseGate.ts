@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import axios from "axios";
-import { User, Subscription, License } from "@shared/schema";
+import { User, Subscription, License } from "../../shared/schema";
 import { storage } from "../storage";
 import { getSubscriptionEndDate } from "../lib/utils";
 
@@ -127,7 +127,8 @@ export class LicenseGateService {
           validationPoints: 0.0,
           validationLimit: 0,
           replenishAmount: 0,
-          replenishInterval: "TEN_SECONDS"
+          replenishInterval: "TEN_SECONDS",
+          licenseKey: licenseKey
         },
         {
           headers: {
