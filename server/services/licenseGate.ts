@@ -378,27 +378,16 @@ Subscription Type: Trial`;
     license?: License;
   }> {
     try {
-      console.log("Validating license with LicenseGate API:", licenseKey);
-
-      // Check if we have valid API credentials
-      if (!API_KEY || !API_URL) {
-        console.error("Missing API credentials for LicenseGate");
-        throw new Error("LicenseGate API credentials are not configured.");
-      }
-
-      // Get license directly by key
       const response = await axios.get(
-        `${API_URL}/admin/licenses/key/${licenseKey}`,
+        `${API_URL}/admin/licenses/${licenseKey}`,
         {
           headers: {
             Authorization: API_KEY,
+            "Content-Type": "application/json",
             Accept: "application/json",
           },
-          timeout: 10000,
-        },
+        }
       );
-
-      console.log("LicenseGate API validation response:", response.data);
 
       if (response.status === 200) {
         const licenseDetails = response.data;
@@ -419,8 +408,18 @@ Subscription Type: Trial`;
         }
 
         // Find or update license in local storage
+        // Ensure we have a valid integer user ID
+        const userId = typeof licenseDetails.userId === 'string' 
+          ? parseInt(licenseDetails.userId, 10) 
+          : Number(licenseDetails.userId);
+
+        if (isNaN(userId)) {
+          console.error("Invalid user ID from LicenseGate:", licenseDetails.userId);
+          return { isValid: false, message: "Invalid license configuration" };
+        }
+
         const storedLicense = await storage.createLicense({
-          userId: 0, // Use a default user ID since LicenseGate uses string IDs
+          userId,
           subscriptionId: null,
           licenseKey: licenseDetails.licenseKey,
           isActive: licenseDetails.active,
@@ -433,43 +432,9 @@ Subscription Type: Trial`;
       } else {
         throw new Error("API validation failed");
       }
-    } catch (err) {
-      const error = err as any;
-      console.error("Error validating license with LicenseGate API:", error);
-
-      if (error.response && error.response.status === 401) {
-        throw new Error(
-          "Authentication failed with LicenseGate. Invalid API credentials.",
-        );
-      }
-
-      // Fallback to local validation if API fails
-      const licenses = Array.from(
-        (
-          await Promise.all(
-            Array.from(Array(1000).keys()).map((i) => storage.getLicense(i)),
-          )
-        ).filter(Boolean) as License[],
-      );
-
-      const license = licenses.find((l) => l.licenseKey === licenseKey);
-
-      if (!license) {
-        return { isValid: false, message: "Invalid license key" };
-      }
-
-      if (!license.isActive) {
-        return { isValid: false, message: "License is inactive", license };
-      }
-
-      const now = new Date();
-      const expiryDate = new Date(license.expiryDate);
-
-      if (now > expiryDate) {
-        return { isValid: false, message: "License has expired", license };
-      }
-
-      return { isValid: true, license };
+    } catch (error) {
+      console.error("License validation error:", error);
+      return { isValid: false, message: "Failed to validate license" };
     }
   }
 
