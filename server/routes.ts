@@ -167,8 +167,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(200).json({ success: true, licenses });
     } catch (error) {
-      console.error("Error fetching user licenses from LicenseGate:", error);
-      next(error);
+      console.error("Error in /api/licenses/me handler:", error);
+      // Send a specific 500 error response
+      const message = error instanceof Error ? error.message : "An unexpected error occurred while fetching licenses.";
+      res.status(500).json({ success: false, message: message });
+      // Do not call next(error) to prevent reaching the generic handler
     }
   });
   

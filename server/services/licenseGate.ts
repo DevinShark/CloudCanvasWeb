@@ -617,15 +617,16 @@ Subscription Type: Trial`;
       }
 
       throw new Error("Invalid response from LicenseGate API");
-    } catch (error) {
+    } catch (error: any) { // Use any to access response property
       console.error("Error fetching user licenses from LicenseGate:", error);
-      if ((error as any).response) {
-        console.error("LicenseGate API error response:", {
-          status: (error as any).response.status,
-          data: (error as any).response.data,
-        });
+      let errorMessage = "Failed to fetch user licenses from LicenseGate";
+      if (error.response?.data?.message) {
+        errorMessage = `LicenseGate API Error: ${error.response.data.message}`;
+      } else if (error.message) {
+        errorMessage = error.message;
       }
-      throw new Error("Failed to fetch user licenses");
+      // Re-throw an error with a more specific message
+      throw new Error(errorMessage);
     }
   }
 }
