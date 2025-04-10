@@ -162,10 +162,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ success: false, message: "User not authenticated or email missing." });
       }
 
-      const { LicenseGateService } = require("./services/licenseGate");
-      const licenses = await LicenseGateService.getUserLicensesFromLicenseGate(user.email);
+      // Log the request
+      console.log("Fetching licenses for user:", user.email);
+            
+      // Get API credentials directly from environment
+      const API_KEY = process.env.LICENSEGATE_API_KEY;
+      const API_URL = (process.env.LICENSEGATE_API_URL || "https://api.licensegate.io").replace(/\/+$/, '');
       
-      res.status(200).json({ success: true, licenses });
+      if (!API_KEY) {
+        console.error("LICENSEGATE_API_KEY is not set in environment variables");
+        throw new Error("LicenseGate API credentials are not configured");
+      }
+      
+      // Make direct axios request to match the Python script exactly
+      const axios = require("axios");
+      const response = await axios.get(
+        `${API_URL}/admin/licenses?email=${encodeURIComponent(user.email)}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": API_KEY, // Directly use the API key - no prefix, matching Python test
+            "Accept": "application/json"
+          },
+          timeout: 10000
+        }
+      );
+      
+      console.log("LicenseGate API direct call response status:", response.status);
+      
+      if (response.status === 200 && response.data && Array.isArray(response.data.licenses)) {
+        const licenses = response.data.licenses.map((license: any) => ({
+          id: license.id,
+          licenseKey: license.licenseKey,
+          isActive: license.active,
+          expiryDate: license.expirationDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          subscriptionId: null // Trial licenses don't have subscription IDs
+        }));
+        
+        console.log(`Found ${licenses.length} licenses for user`);
+        res.status(200).json({ success: true, licenses });
+      } else {
+        console.error("Invalid response from LicenseGate API:", response.data);
+        res.status(200).json({ success: true, licenses: [] });
+      }
     } catch (error) {
       console.error("Error in /api/licenses/me handler:", error);
       // Send a specific 500 error response
