@@ -4,7 +4,7 @@ import { requireAuth } from "../middleware/auth";
 import { License, User } from "../../shared/schema";
 import { storage } from "../storage";
 import { Request, Response } from "express";
-import { LicenseGateService } from "../services/licenseGate";
+import { LicenseGateService, LicenseDetails } from "../services/licenseGate";
 
 const router = Router();
 
@@ -17,9 +17,12 @@ router.post("/trial", requireAuth, generateTrialLicense);
 // Get licenses for the currently logged-in user
 router.get("/me", requireAuth, async (req, res, next) => {
   try {
+    console.log("[DEBUG] /me endpoint called - auth passed");
     const user = req.user as User | undefined; 
+    console.log("[DEBUG] User from request:", JSON.stringify(user, null, 2));
 
     if (!user || !user.id) {
+      console.log("[DEBUG] No user or user ID found in request");
       return res.status(401).json({ 
         success: false, 
         message: "User not authenticated or ID missing." 
@@ -28,54 +31,112 @@ router.get("/me", requireAuth, async (req, res, next) => {
 
     const userId = user.id;
     console.log("[DEBUG] Fetching licenses for user ID:", userId);
-    const licenses: License[] = await storage.getUserLicenses(userId);
-    console.log("[DEBUG] Found licenses in DB:", licenses.length, licenses.map(l => l.licenseKey));
     
-    // Enrich licenses with additional information
-    const enrichedLicenses = await Promise.all(licenses.map(async (license) => {
-      // Create a basic enriched license from DB data
-      const enrichedLicense = {
-        ...license,
-        // If subscriptionId is null or 0, it's a trial license
-        plan: !license.subscriptionId ? 'trial' : undefined
-      };
-
-      try {
-        // Optionally validate with LicenseGate to get the most current status
-        const validationResult = await LicenseGateService.validateLicense(license.licenseKey);
+    // First get all licenses for this user from our database
+    const dbLicenses: License[] = await storage.getUserLicenses(userId);
+    console.log("[DEBUG] Found licenses in DB:", dbLicenses.length, JSON.stringify(dbLicenses, null, 2));
+    
+    // Then get user licenses from LicenseGate API based on email
+    let lgLicenses: any[] = [];
+    try {
+      lgLicenses = await LicenseGateService.getUserLicensesFromLicenseGate(user.email);
+      console.log("[DEBUG] Found licenses in LicenseGate for email", user.email, ":", lgLicenses.length);
+    } catch (error) {
+      console.error("[DEBUG] Error fetching licenses from LicenseGate:", error);
+      // Continue with DB licenses if LicenseGate fetch fails
+    }
+    
+    // Create a map of licenses by license key for quick lookup
+    const licensesByKey = new Map();
+    
+    // Add all DB licenses to the map first
+    for (const dbLicense of dbLicenses) {
+      licensesByKey.set(dbLicense.licenseKey, {
+        ...dbLicense,
+        // Default plan to 'trial' if subscriptionId is null
+        plan: !dbLicense.subscriptionId ? 'trial' : undefined,
+      });
+    }
+    
+    // Update or add licenses from LicenseGate
+    for (const lgLicense of lgLicenses) {
+      // Extract plan type and billing type from notes if available
+      let plan = 'standard'; // Default
+      let billingType = 'monthly'; // Default
+      
+      if (lgLicense.hasOwnProperty('name') && lgLicense.hasOwnProperty('notes')) {
+        // This is the raw API response - the method didn't fully transform it
+        const notes = lgLicense.notes || '';
         
-        if (validationResult.isValid && validationResult.license) {
-          // Update with external validation data if available
-          return {
-            ...enrichedLicense,
-            isActive: validationResult.license.isActive,
-            expiryDate: validationResult.license.expiryDate
-          };
+        // Check for plan in notes
+        if (notes.includes('Trial')) {
+          plan = 'trial';
+          billingType = 'trial';
+        } else if (notes.includes('Professional') || notes.includes('- Professional')) {
+          plan = 'professional';
+        } else if (notes.includes('Enterprise') || notes.includes('- Enterprise')) {
+          plan = 'enterprise';
         }
-      } catch (validationError) {
-        // If validation fails, just use the DB data
-        console.warn(`License validation failed for ${license.licenseKey}:`, validationError);
-        // Don't throw - continue with the data we have
+        
+        // Check for billing type in notes
+        if (notes.includes('Monthly') || notes.includes('- Monthly')) {
+          billingType = 'monthly';
+        } else if (notes.includes('Yearly') || notes.includes('- Yearly') || 
+                  notes.includes('Annual') || notes.includes('- Annual')) {
+          billingType = 'annual';
+        }
+        
+        // Skip licenses that don't match the user's email
+        if (!notes.includes(user.email)) {
+          console.log("[DEBUG] Skipping license", lgLicense.licenseKey, "- email doesn't match");
+          continue;
+        }
+      } else if (lgLicense.plan) {
+        // If the license already has plan info (transformed by service)
+        plan = lgLicense.plan;
       }
       
-      return enrichedLicense;
-    }));
+      // Update existing license or add new one
+      if (licensesByKey.has(lgLicense.licenseKey)) {
+        licensesByKey.set(lgLicense.licenseKey, {
+          ...licensesByKey.get(lgLicense.licenseKey),
+          isActive: lgLicense.active || lgLicense.isActive,
+          expiryDate: lgLicense.expirationDate || lgLicense.expiryDate,
+          plan,
+          billingType
+        });
+      } else {
+        licensesByKey.set(lgLicense.licenseKey, {
+          id: lgLicense.id || 0,
+          userId,
+          licenseKey: lgLicense.licenseKey,
+          isActive: lgLicense.active || lgLicense.isActive,
+          expiryDate: lgLicense.expirationDate || lgLicense.expiryDate,
+          createdAt: lgLicense.createdAt,
+          subscriptionId: null,
+          plan,
+          billingType
+        });
+      }
+    }
     
-    console.log("[DEBUG] Returning enriched licenses:", enrichedLicenses.length);
+    // Convert map to array
+    const mergedLicenses = Array.from(licensesByKey.values());
+    console.log("[DEBUG] Merged licenses:", JSON.stringify(mergedLicenses, null, 2));
     
     return res.status(200).json({ 
       success: true, 
-      licenses: enrichedLicenses || [] 
+      licenses: mergedLicenses || [] 
     });
 
   } catch (error) {
-    console.error("[DEBUG] Error fetching user licenses from DB:", error);
+    console.error("[DEBUG] Error fetching user licenses:", error);
     
     // Handle specific error cases
     if (error instanceof Error) {
       return res.status(500).json({ 
         success: false, 
-        message: error.message || "Failed to fetch user licenses from DB",
+        message: error.message || "Failed to fetch user licenses",
         error: process.env.NODE_ENV === 'development' ? error.stack : undefined
       });
     }
@@ -83,7 +144,7 @@ router.get("/me", requireAuth, async (req, res, next) => {
     // Generic error response
     return res.status(500).json({ 
       success: false, 
-      message: "An unexpected error occurred while fetching licenses from DB"
+      message: "An unexpected error occurred while fetching licenses"
     });
   }
 });

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -52,6 +52,16 @@ const UserDashboard = () => {
   // Check if the user has at least one active license
   const hasActiveLicense = licenses && licenses.length > 0 && 
     licenses.some(license => license.isActive);
+  
+  // Add debug output for licenses when they change
+  useEffect(() => {
+    if (licenses) {
+      console.log("Dashboard received licenses:", {
+        count: licenses.length,
+        data: licenses
+      });
+    }
+  }, [licenses]);
   
   if (isLoading) {
     return (

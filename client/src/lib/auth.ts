@@ -145,23 +145,50 @@ export async function updateUserProfile(userData: Partial<InsertUser>): Promise<
 // --- NEW FUNCTION --- 
 export const fetchUserLicenses = async (): Promise<LicenseDetails[]> => {
   try {
+    console.log("Fetching user licenses from:", getApiUrl("/api/licenses/me"));
+    
     const response = await axios.get<{ success: boolean; licenses: LicenseDetails[] }>(
-      getApiUrl("/api/licenses/me")
+      getApiUrl("/api/licenses/me"),
+      {
+        // Ensure credentials are included and content type is set
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        }
+      }
     );
+    
+    console.log("License API response:", {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+      data: response.data
+    });
     
     if (response.data.success) {
       // Ensure each license has a plan property
-      return response.data.licenses.map(license => ({
+      const licenses = response.data.licenses.map(license => ({
         ...license,
         plan: license.plan || 'trial' // Default to 'trial' if no plan is set
       }));
+      
+      console.log("Processed licenses:", licenses);
+      return licenses;
     } else {
       console.error("Backend indicated failure fetching licenses", response.data);
       return [];
     }
   } catch (error: any) {
-    console.error("Error fetching user licenses:", error);
-    throw error;
+    console.error("Error fetching user licenses:", error.response ? {
+      status: error.response.status,
+      statusText: error.response.statusText,
+      data: error.response.data,
+      headers: error.response.headers
+    } : error.message || error);
+    
+    // Return empty array instead of throwing to prevent query retries
+    return [];
   }
 };
 // --- END NEW FUNCTION --- 
