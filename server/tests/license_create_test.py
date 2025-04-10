@@ -17,9 +17,9 @@ license_payload = {
     "name": "CloudCanvas Valid Defaults Test",
     "notes": "Testing with non-null defaults",
     "ipLimit": 1,                          # Integer, using dashboard value
-    "licenseScope": "",                     # String, using dashboard value
+    "licenseScope": "",                    # String, using dashboard value
     "expirationDate": expiration_iso,      # ISO 8601 string, using calculated value
-    "validationPoints": 0.0,                 # Float
+    "validationPoints": 0.0,               # Float
     "validationLimit": 0,                  # Integer
     "replenishAmount": 0,                  # Integer
     "replenishInterval": "TEN_SECONDS",    # Enum
