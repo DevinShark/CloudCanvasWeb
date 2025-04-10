@@ -195,7 +195,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           licenseKey: license.licenseKey,
           isActive: license.active,
           expiryDate: license.expirationDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-          subscriptionId: null // Trial licenses don't have subscription IDs
+          subscriptionId: null, // Trial licenses don't have subscription IDs
+          plan: 'trial' // Add default plan as 'trial' to prevent charAt errors
         }));
         
         console.log(`Found ${licenses.length} licenses for user`);
