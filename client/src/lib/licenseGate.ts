@@ -145,21 +145,37 @@ export async function generateTrialLicense() {
     await queryClient.invalidateQueries({ queryKey: ["userLicenses"] });
 
     return true;
-  } catch (error: any) {
-    console.error("Error generating trial license:", error);
+  } catch (error: any) { 
+    console.error("Error during trial generation process:", error);
     
-    let errorMessage = "Failed to generate trial license";
-    if (error?.response?.data?.message) {
-      errorMessage = error.response.data.message;
-    } else if (error instanceof Error && error.message) {
-      errorMessage = error.message;
+    let errorMessage = "Failed to generate trial license. Please try again later.";
+    let errorTitle = "Trial Generation Failed";
+
+    // Check for specific known error messages or structures
+    if (error instanceof Error) {
+        if (error.message.includes("already have a license")) {
+            errorMessage = error.message; 
+            errorTitle = "Trial Not Available";
+        } else if (error.message.includes("API error:")) {
+            // Handle errors specifically thrown from the fetchQuery part
+            errorMessage = `Could not retrieve license status (${error.message}). Please refresh and try again.`;
+            errorTitle = "Network Error";
+        }
+        // You could add more specific checks here based on expected backend errors
+        else {
+          // Use the generic error message if it's not a known type
+          errorMessage = error.message || errorMessage;
+        }
+    } else if (typeof error === 'string') {
+        errorMessage = error; // Handle plain string errors
     }
 
     toast({
-      title: "Error",
+      title: errorTitle,
       description: errorMessage,
       variant: "destructive",
     });
-    throw error;
+    // We still throw the original error for potential higher-level handling
+    throw error; 
   }
 }
