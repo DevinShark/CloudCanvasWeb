@@ -118,6 +118,14 @@ export const getLicense = async (req: Request, res: Response) => {
     const userId = (req.user as any).id;
     const licenseId = parseInt(req.params.id);
 
+    // Add validation for NaN
+    if (isNaN(licenseId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid license ID format"
+      });
+    }
+
     // Get the license
     const license = await storage.getLicense(licenseId);
 
