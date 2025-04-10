@@ -28,7 +28,7 @@ export interface LicenseDetails {
 
 export class LicenseGateService {
   private static readonly headers = {
-    'Authorization': `Bearer ${API_KEY}`,
+    'Authorization': API_KEY, // Just the key, no 'Bearer' prefix
     'Content-Type': 'application/json'
   };
 
@@ -596,7 +596,7 @@ Subscription Type: Trial`;
         `${API_URL}/admin/licenses?email=${encodeURIComponent(userEmail)}`,
         {
           headers: {
-            Authorization: API_KEY,
+            Authorization: API_KEY, // Just the key, no 'Bearer' prefix
             "Content-Type": "application/json",
             Accept: "application/json",
           },
