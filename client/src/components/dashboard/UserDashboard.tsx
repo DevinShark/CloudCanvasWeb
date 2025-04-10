@@ -7,7 +7,7 @@ import { Download, FileDown } from "lucide-react";
 import { getCurrentUser, fetchUserLicenses, LicenseDetails } from "@/lib/auth";
 import { getUserSubscription } from "@/lib/paypal";
 import { generateTrialLicense } from "@/lib/licenseGate";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatPlanName, capitalizeFirstLetter } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import LicenseCard from "@/components/dashboard/LicenseCard";
 import ProfileSettings from "@/components/dashboard/ProfileSettings";
@@ -191,7 +191,7 @@ const UserDashboard = () => {
                     <div>
                       <h3 className="text-sm font-medium text-gray-500">Plan</h3>
                       <p className="text-lg font-semibold mt-1">
-                        {subscription.plan.charAt(0).toUpperCase() + subscription.plan.slice(1)}
+                        {formatPlanName(subscription.plan)}
                       </p>
                     </div>
                     
@@ -202,7 +202,7 @@ const UserDashboard = () => {
                           subscription.status === "active" ? "bg-green-500" : "bg-gray-400"
                         }`}></div>
                         <p className="text-lg font-semibold">
-                          {subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1)}
+                          {capitalizeFirstLetter(subscription.status)}
                         </p>
                       </div>
                     </div>
@@ -272,7 +272,7 @@ const UserDashboard = () => {
                           {formatDate(new Date(subscription.startDate))}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {subscription.plan.charAt(0).toUpperCase() + subscription.plan.slice(1)} Plan - {subscription.billingType === "annual" ? "Annual" : "Monthly"}
+                          {formatPlanName(subscription.plan)} Plan - {subscription.billingType === "annual" ? "Annual" : "Monthly"}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           ${subscription.billingType === "annual" ? 

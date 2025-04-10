@@ -101,3 +101,11 @@ export function getSubscriptionEndDate(startDate: Date, billingType: string): Da
   }
   return date;
 }
+
+/**
+ * Capitalize the first letter of a string
+ */
+export function capitalizeFirstLetter(str?: string | null): string {
+  if (!str) return ""; // Return empty string if input is null or undefined
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
