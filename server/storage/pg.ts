@@ -96,7 +96,15 @@ export class PostgresStorage implements IStorage {
     });
     
     try {
-      const results = await db.select().from(licenses).where(eq(licenses.userId, userId));
+      // Ensure userId is a valid number
+      const validUserId = typeof userId === 'string' ? parseInt(userId, 10) : Number(userId);
+      
+      if (isNaN(validUserId)) {
+        console.error("[DEBUG] Invalid userId provided to getUserLicenses:", userId);
+        return [];
+      }
+      
+      const results = await db.select().from(licenses).where(eq(licenses.userId, validUserId));
       console.error("[DEBUG] Query results:", {
         count: results.length,
         userIds: results.map(l => l.userId)
