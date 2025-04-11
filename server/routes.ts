@@ -174,13 +174,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         throw new Error("LicenseGate API credentials are not configured");
       }
       
-      // Make direct axios request to match the Python script exactly
+      // Make direct axios request to fetch ALL licenses
       const response = await axios.get(
-        `${API_URL}/admin/licenses?email=${encodeURIComponent(user.email)}`,
+        `${API_URL}/admin/licenses`, // Fetch all licenses
         {
           headers: {
             "Content-Type": "application/json",
-            "Authorization": API_KEY, // Directly use the API key - no prefix, matching Python test
+            "Authorization": API_KEY,
             "Accept": "application/json"
           },
           timeout: 10000
@@ -190,17 +190,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("LicenseGate API direct call response status:", response.status);
       
       if (response.status === 200 && response.data && Array.isArray(response.data.licenses)) {
-        const licenses = response.data.licenses.map((license: any) => ({
-          id: license.id,
-          licenseKey: license.licenseKey,
-          isActive: license.active,
-          expiryDate: license.expirationDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-          subscriptionId: null, // Trial licenses don't have subscription IDs
-          plan: 'trial' // Add default plan as 'trial' to prevent charAt errors
-        }));
+        // Filter licenses by email in the notes field and map the data
+        const filteredLicenses = response.data.licenses
+          .filter((license: any) => license.notes && license.notes.includes(user.email))
+          .map((license: any) => ({
+            id: license.id,
+            licenseKey: license.licenseKey,
+            isActive: license.active,
+            // Ensure expiryDate is a string, default if null/undefined
+            expiryDate: license.expirationDate 
+              ? String(license.expirationDate) 
+              : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+            subscriptionId: license.subscriptionId || null, // Use subscriptionId if available
+            plan: license.plan || 'trial', // Use plan if available, default to 'trial'
+            notes: license.notes, // Include notes
+            name: license.name // Include name if available
+          }));
         
-        console.log(`Found ${licenses.length} licenses for user`);
-        res.status(200).json({ success: true, licenses });
+        console.log(`Found ${filteredLicenses.length} licenses for user ${user.email} after filtering`);
+        res.status(200).json({ success: true, licenses: filteredLicenses });
       } else {
         console.error("Invalid response from LicenseGate API:", response.data);
         res.status(200).json({ success: true, licenses: [] });
