@@ -4,7 +4,7 @@ import {
   type License, type InsertLicense,
   type DemoRequest, type InsertDemoRequest,
   type ContactMessage, type InsertContactMessage
-} from '@shared/schema';
+} from '../../shared/schema';
 
 export interface IStorage {
   // User methods

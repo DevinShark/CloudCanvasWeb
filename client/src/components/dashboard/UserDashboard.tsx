@@ -7,6 +7,7 @@ import { Download, FileDown } from "lucide-react";
 import { getCurrentUser, fetchUserLicenses, LicenseDetails } from "@/lib/auth";
 import { getUserSubscription } from "@/lib/paypal";
 import { generateTrialLicense } from "@/lib/licenseGate";
+import { getInstallerDownloadUrl } from "@/lib/downloads";
 import { formatDate, formatPlanName, capitalizeFirstLetter } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import LicenseCard from "@/components/dashboard/LicenseCard";
@@ -15,6 +16,7 @@ import ProfileSettings from "@/components/dashboard/ProfileSettings";
 const UserDashboard = () => {
   const [activeTab, setActiveTab] = useState("licenses");
   const [isGeneratingTrial, setIsGeneratingTrial] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const queryClient = useQueryClient();
   
   const { data: user, isLoading: isLoadingUser } = useQuery({
@@ -47,7 +49,33 @@ const UserDashboard = () => {
     }
   };
   
-  const isLoading = isLoadingUser || isLoadingSubscription || isLoadingLicenses || isGeneratingTrial;
+  const handleDownload = async () => {
+    try {
+      setIsDownloading(true);
+      
+      // Get the download URL from the server
+      const downloadUrl = await getInstallerDownloadUrl();
+      
+      // Initiate the download
+      window.location.href = downloadUrl;
+      
+      toast({
+        title: "Download started",
+        description: "Your download should begin shortly. If not, click the download button again.",
+      });
+    } catch (error) {
+      console.error("Download error:", error);
+      toast({
+        title: "Download failed",
+        description: error instanceof Error ? error.message : "Could not download the installer. Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+  
+  const isLoading = isLoadingUser || isLoadingSubscription || isLoadingLicenses || isGeneratingTrial || isDownloading;
   
   // Check if the user has at least one active license
   const hasActiveLicense = licenses && licenses.length > 0 && 
@@ -136,20 +164,13 @@ const UserDashboard = () => {
                       <h4 className="font-medium">Cloud Canvas v3.5.2</h4>
                       <p className="text-sm text-gray-500">Released on {formatDate(new Date("2025-03-15"))}</p>
                     </div>
-                    <Button className="gap-2">
+                    <Button 
+                      className="gap-2" 
+                      onClick={handleDownload}
+                      disabled={isDownloading}
+                    >
                       <Download className="h-4 w-4" />
-                      Download
-                    </Button>
-                  </div>
-                  
-                  <div className="flex justify-between items-center p-4 border rounded-lg">
-                    <div>
-                      <h4 className="font-medium">LAS Format Plugin</h4>
-                      <p className="text-sm text-gray-500">Additional format support</p>
-                    </div>
-                    <Button variant="outline" className="gap-2">
-                      <Download className="h-4 w-4" />
-                      Download
+                      {isDownloading ? 'Downloading...' : 'Download'}
                     </Button>
                   </div>
                 </div>

@@ -14,6 +14,7 @@ import * as subscriptionController from "./controllers/subscription";
 import * as licenseController from "./controllers/license";
 import * as webhookController from "./controllers/webhook";
 import * as healthController from "./controllers/health";
+import * as downloadController from "./controllers/download";
 
 // Import middleware
 import { requireAuth } from "./middleware/auth";
@@ -252,6 +253,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+  
+  // Download routes
+  app.get("/api/downloads/installer", requireAuth, downloadController.getInstallerUrl);
   
   // Contact form route
   app.post("/api/contact", async (req, res) => {
