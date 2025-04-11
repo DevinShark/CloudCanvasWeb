@@ -5,6 +5,7 @@ import { License, User } from "../../shared/schema";
 import { storage } from "../storage";
 import { Request, Response } from "express";
 import { LicenseGateService, LicenseDetails } from "../services/licenseGate";
+import axios from "axios";
 
 const router = Router();
 
@@ -36,11 +37,28 @@ router.get("/me", requireAuth, async (req, res, next) => {
     const dbLicenses: License[] = await storage.getUserLicenses(userId);
     console.log("[DEBUG] Found licenses in DB:", dbLicenses.length, JSON.stringify(dbLicenses, null, 2));
     
-    // Then get user licenses from LicenseGate API based on email
-    let lgLicenses: any[] = [];
+    // Get all licenses from LicenseGate API
+    let allLicenses = [];
     try {
-      lgLicenses = await LicenseGateService.getUserLicensesFromLicenseGate(user.email);
-      console.log("[DEBUG] Found licenses in LicenseGate for email", user.email, ":", lgLicenses.length);
+      // Get API credentials from environment 
+      const API_KEY = process.env.LICENSEGATE_API_KEY;
+      const API_URL = (process.env.LICENSEGATE_API_URL || "https://api.licensegate.io").replace(/\/+$/, '');
+      
+      console.log("[DEBUG] Fetching all licenses from LicenseGate API");
+      
+      // Make direct API call to get all licenses
+      const response = await axios.get(`${API_URL}/admin/licenses`, {
+        headers: {
+          'Authorization': API_KEY,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (response.data && response.data.licenses) {
+        allLicenses = response.data.licenses;
+        console.log(`[DEBUG] Got ${allLicenses.length} licenses from LicenseGate API`);
+      }
     } catch (error) {
       console.error("[DEBUG] Error fetching licenses from LicenseGate:", error);
       // Continue with DB licenses if LicenseGate fetch fails
@@ -58,116 +76,91 @@ router.get("/me", requireAuth, async (req, res, next) => {
       });
     }
     
-    // Update or add licenses from LicenseGate
-    for (const lgLicense of lgLicenses) {
-      // Debug the raw license data
-      console.log("[DEBUG] Processing license:", lgLicense.licenseKey, "with notes:", lgLicense.notes);
-      
-      // Extract plan type and billing type from notes if available
-      let plan = 'standard'; // Default
-      let billingType = 'monthly'; // Default
-      let licenseEmail = null;
-      
-      if (lgLicense.hasOwnProperty('notes') && lgLicense.notes) {
-        // This is the raw API response - the method didn't fully transform it
-        const notes = lgLicense.notes || '';
-        
-        // Extract email from notes - emails are typically in format "Email: email@example.com" on a line
-        const emailMatch = notes.match(/Email:?\s*([^\s\n]+@[^\s\n]+)/i) || 
-                           notes.match(/Email\s*-\s*([^\s\n]+@[^\s\n]+)/i);
-        
-        if (emailMatch && emailMatch[1]) {
-          licenseEmail = emailMatch[1].trim();
-          console.log(`[DEBUG] Extracted email from license ${lgLicense.licenseKey}: '${licenseEmail}'`);
-          
-          // Skip if email doesn't match the current user
-          if (licenseEmail.toLowerCase() !== user.email.toLowerCase()) {
-            console.log(`[DEBUG] Skipping license ${lgLicense.licenseKey} - email '${licenseEmail}' doesn't match user: '${user.email}'`);
-            continue;
-          }
-          
-          console.log(`[DEBUG] License ${lgLicense.licenseKey} matches user email: '${user.email}'`);
-        } else {
-          // If we can't extract an email, log it and skip this license
-          console.log(`[DEBUG] Couldn't extract email from license ${lgLicense.licenseKey} notes: ${notes}`);
-          continue;
-        }
-        
-        // Check for plan in notes
-        if (notes.includes('Trial')) {
-          plan = 'trial';
-          billingType = 'trial';
-        } else if (notes.includes('Professional') || notes.includes('- Professional')) {
-          plan = 'professional';
-        } else if (notes.includes('Enterprise') || notes.includes('- Enterprise')) {
-          plan = 'enterprise';
-        }
-        
-        // Check for billing type in notes
-        if (notes.includes('Monthly') || notes.includes('- Monthly')) {
-          billingType = 'monthly';
-        } else if (notes.includes('Yearly') || notes.includes('- Yearly') || 
-                  notes.includes('Annual') || notes.includes('- Annual')) {
-          billingType = 'annual';
-        }
-        
-        // Try to extract plan from "Plan: X" format as fallback
-        const planMatch = notes.match(/Plan:?\s*([^\s\n]+)/i);
-        if (planMatch && planMatch[1]) {
-          const extractedPlan = planMatch[1].toLowerCase().trim();
-          if (['trial', 'standard', 'professional', 'enterprise'].includes(extractedPlan)) {
-            plan = extractedPlan;
-          }
-        }
-      } else if (lgLicense.plan) {
-        // If the license already has plan info (transformed by service)
-        plan = lgLicense.plan;
-      } else {
-        // Skip licenses without notes or plan info
-        console.log(`[DEBUG] Skipping license ${lgLicense.licenseKey} - no notes or plan info`);
+    // Filter licenses by email in notes field
+    const userLicenses = [];
+    
+    for (const license of allLicenses) {
+      console.log(`[DEBUG] Processing license: ${license.licenseKey}`);
+      console.log(`[DEBUG] License notes: ${license.notes}`);
+
+      // Skip if no notes field
+      if (!license.notes) {
+        console.log(`[DEBUG] Skipping license ${license.licenseKey} - no notes field`);
         continue;
       }
       
-      // Check if the license is expired - override isActive flag
-      const expiryDate = new Date(lgLicense.expirationDate || lgLicense.expiryDate);
-      const now = new Date();
-      // If expiry date is in the past, license is not active regardless of the isActive flag
-      const isExpired = expiryDate < now;
-      const isActive = isExpired ? false : (lgLicense.active || lgLicense.isActive);
+      // Match different email formats in notes
+      const emailPatterns = [
+        new RegExp(`Email:\\s*${user.email}`, 'i'),
+        new RegExp(`Email -\\s*${user.email}`, 'i'),
+        new RegExp(`email:\\s*${user.email}`, 'i'),
+        new RegExp(`email -\\s*${user.email}`, 'i')
+      ];
       
-      // Update existing license or add new one
-      if (licensesByKey.has(lgLicense.licenseKey)) {
-        licensesByKey.set(lgLicense.licenseKey, {
-          ...licensesByKey.get(lgLicense.licenseKey),
+      // Check if any pattern matches
+      const matchesUserEmail = emailPatterns.some(pattern => pattern.test(license.notes));
+      
+      if (!matchesUserEmail) {
+        console.log(`[DEBUG] Skipping license ${license.licenseKey} - email doesn't match ${user.email}`);
+        continue;
+      }
+      
+      console.log(`[DEBUG] Found matching license for user: ${license.licenseKey}`);
+      
+      // Extract plan from notes
+      let plan = 'standard';
+      if (license.notes.includes('Trial')) {
+        plan = 'trial';
+      } else if (license.notes.includes('Professional')) {
+        plan = 'professional';
+      } else if (license.notes.includes('Enterprise')) {
+        plan = 'enterprise';
+      }
+      
+      // Check expiration status
+      const expiryDate = new Date(license.expirationDate);
+      const now = new Date();
+      const isExpired = now > expiryDate;
+      const isActive = isExpired ? false : license.active;
+      
+      // Create license object with correct format
+      const licenseObj = {
+        id: license.id,
+        licenseKey: license.licenseKey,
+        isActive: isActive,
+        expiryDate: license.expirationDate,
+        subscriptionId: null,
+        plan,
+        isExpired
+      };
+      
+      userLicenses.push(licenseObj);
+      
+      // Update map if this license is already there
+      if (licensesByKey.has(license.licenseKey)) {
+        licensesByKey.set(license.licenseKey, {
+          ...licensesByKey.get(license.licenseKey),
           isActive: isActive,
-          expiryDate: lgLicense.expirationDate || lgLicense.expiryDate,
+          expiryDate: license.expirationDate,
           plan,
-          billingType,
-          isExpired // Add explicit expired flag
+          isExpired
         });
       } else {
-        licensesByKey.set(lgLicense.licenseKey, {
-          id: lgLicense.id || 0,
-          userId,
-          licenseKey: lgLicense.licenseKey,
-          isActive: isActive,
-          expiryDate: lgLicense.expirationDate || lgLicense.expiryDate,
-          createdAt: lgLicense.createdAt,
-          subscriptionId: null,
-          plan,
-          billingType,
-          isExpired // Add explicit expired flag
-        });
+        licensesByKey.set(license.licenseKey, licenseObj);
       }
     }
     
-    // Convert map to array
-    const mergedLicenses = Array.from(licensesByKey.values());
-    console.log("[DEBUG] Merged licenses:", JSON.stringify(mergedLicenses, null, 2));
+    // If we found licenses directly from the API, use those
+    // Otherwise fall back to database licenses
+    const finalLicenses = userLicenses.length > 0 
+      ? userLicenses 
+      : Array.from(licensesByKey.values());
+    
+    console.log("[DEBUG] Returning licenses:", JSON.stringify(finalLicenses, null, 2));
     
     return res.status(200).json({ 
       success: true, 
-      licenses: mergedLicenses || [] 
+      licenses: finalLicenses || [] 
     });
 
   } catch (error) {
