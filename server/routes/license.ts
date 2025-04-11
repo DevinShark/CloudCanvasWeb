@@ -60,30 +60,38 @@ router.get("/me", requireAuth, async (req, res, next) => {
     
     // Update or add licenses from LicenseGate
     for (const lgLicense of lgLicenses) {
+      // Debug the raw license data
+      console.log("[DEBUG] Processing license:", lgLicense.licenseKey, "with notes:", lgLicense.notes);
+      
       // Extract plan type and billing type from notes if available
       let plan = 'standard'; // Default
       let billingType = 'monthly'; // Default
+      let licenseEmail = null;
       
-      if (lgLicense.hasOwnProperty('name') && lgLicense.hasOwnProperty('notes')) {
+      if (lgLicense.hasOwnProperty('notes') && lgLicense.notes) {
         // This is the raw API response - the method didn't fully transform it
         const notes = lgLicense.notes || '';
         
-        // Perform strict email matching to ensure we only get user-specific licenses
-        // Look for common patterns like "Email: user@example.com" or "Email - user@example.com"
-        const emailPatterns = [
-          `Email: ${user.email}`,
-          `Email - ${user.email}`,
-          `email: ${user.email}`,
-          `email - ${user.email}`
-        ];
+        // Extract email from notes - emails are typically in format "Email: email@example.com" on a line
+        const emailMatch = notes.match(/Email:?\s*([^\s\n]+@[^\s\n]+)/i) || 
+                           notes.match(/Email\s*-\s*([^\s\n]+@[^\s\n]+)/i);
         
-        // Skip if none of the email patterns match
-        if (!emailPatterns.some(pattern => notes.includes(pattern))) {
-          console.log("[DEBUG] Skipping license", lgLicense.licenseKey, "- email doesn't match user:", user.email);
+        if (emailMatch && emailMatch[1]) {
+          licenseEmail = emailMatch[1].trim();
+          console.log(`[DEBUG] Extracted email from license ${lgLicense.licenseKey}: '${licenseEmail}'`);
+          
+          // Skip if email doesn't match the current user
+          if (licenseEmail.toLowerCase() !== user.email.toLowerCase()) {
+            console.log(`[DEBUG] Skipping license ${lgLicense.licenseKey} - email '${licenseEmail}' doesn't match user: '${user.email}'`);
+            continue;
+          }
+          
+          console.log(`[DEBUG] License ${lgLicense.licenseKey} matches user email: '${user.email}'`);
+        } else {
+          // If we can't extract an email, log it and skip this license
+          console.log(`[DEBUG] Couldn't extract email from license ${lgLicense.licenseKey} notes: ${notes}`);
           continue;
         }
-        
-        console.log("[DEBUG] License matches user email:", lgLicense.licenseKey);
         
         // Check for plan in notes
         if (notes.includes('Trial')) {
@@ -102,9 +110,22 @@ router.get("/me", requireAuth, async (req, res, next) => {
                   notes.includes('Annual') || notes.includes('- Annual')) {
           billingType = 'annual';
         }
+        
+        // Try to extract plan from "Plan: X" format as fallback
+        const planMatch = notes.match(/Plan:?\s*([^\s\n]+)/i);
+        if (planMatch && planMatch[1]) {
+          const extractedPlan = planMatch[1].toLowerCase().trim();
+          if (['trial', 'standard', 'professional', 'enterprise'].includes(extractedPlan)) {
+            plan = extractedPlan;
+          }
+        }
       } else if (lgLicense.plan) {
         // If the license already has plan info (transformed by service)
         plan = lgLicense.plan;
+      } else {
+        // Skip licenses without notes or plan info
+        console.log(`[DEBUG] Skipping license ${lgLicense.licenseKey} - no notes or plan info`);
+        continue;
       }
       
       // Check if the license is expired - override isActive flag

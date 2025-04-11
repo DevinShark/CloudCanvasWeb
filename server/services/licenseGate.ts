@@ -25,6 +25,8 @@ export interface LicenseDetails {
   expiryDate: string; // Must be string, not null
   subscriptionId: number | null;
   plan?: string; // Add optional plan property for frontend
+  notes?: string; // Add optional notes field
+  name?: string; // Add optional name field
 }
 
 export class LicenseGateService {
@@ -599,9 +601,9 @@ Subscription Type: Trial`;
         throw new Error("LicenseGate API credentials are not configured");
       }
 
-      // Use the correct endpoint for fetching licenses by email
+      // Fetch all licenses first, then filter by email in the notes field
       const response = await axios.get(
-        `${API_URL}/admin/licenses?email=${encodeURIComponent(userEmail)}`,
+        `${API_URL}/admin/licenses`,
         {
           headers: {
             Authorization: API_KEY, // Just the key, no 'Bearer' prefix
@@ -612,21 +614,37 @@ Subscription Type: Trial`;
         }
       );
 
-      console.log("LicenseGate API response:", response.data);
+      console.log("LicenseGate API response received with", 
+        response.data?.licenses?.length || 0, "licenses");
 
       if (response.status === 200 && response.data && Array.isArray(response.data.licenses)) {
-        return response.data.licenses.map((license: any) => ({
-          id: license.id,
-          licenseKey: license.licenseKey,
-          isActive: license.active,
-          expiryDate: license.expirationDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Default to 7 days from now if not set
-          subscriptionId: null, // Trial licenses don't have subscription IDs
-          plan: license.plan
-        }));
+        // Include the notes field and pass along the raw license data
+        return response.data.licenses.map((license: any) => {
+          // Make sure expiryDate is a string
+          let expiryDate: string;
+          if (license.expirationDate) {
+            expiryDate = String(license.expirationDate);
+          } else {
+            // Default to 7 days from now if not set
+            const date = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+            expiryDate = date.toISOString();
+          }
+
+          return {
+            id: license.id,
+            licenseKey: license.licenseKey,
+            isActive: license.active,
+            expiryDate,
+            subscriptionId: null,
+            plan: license.plan,
+            notes: license.notes, // Include the notes field
+            name: license.name    // Include the name field
+          };
+        });
       }
 
       throw new Error("Invalid response from LicenseGate API");
-    } catch (error: any) { // Use any to access response property
+    } catch (error: any) {
       console.error("Error fetching user licenses from LicenseGate:", error);
       let errorMessage = "Failed to fetch user licenses from LicenseGate";
       if (error.response?.data?.message) {
@@ -634,7 +652,6 @@ Subscription Type: Trial`;
       } else if (error.message) {
         errorMessage = error.message;
       }
-      // Re-throw an error with a more specific message
       throw new Error(errorMessage);
     }
   }
