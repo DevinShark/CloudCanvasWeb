@@ -346,9 +346,7 @@ Subscription Type: Trial`;
         licenseKey: licenseKey,
         isActive: true,
         expiryDate: expirationDate,
-        createdAt: createdAt,
-        plan: 'trial',
-        billingType: 'trial'
+        createdAt: createdAt.toISOString()
       });
 
       console.log("Trial license created successfully in database:", license);
