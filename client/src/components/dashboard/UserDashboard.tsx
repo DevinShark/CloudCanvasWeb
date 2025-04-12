@@ -53,8 +53,18 @@ const UserDashboard = () => {
     try {
       setIsDownloading(true);
       
+      toast({
+        title: "Preparing download",
+        description: "Generating secure download link...",
+      });
+      
       // Get the download URL from the server
       const downloadUrl = await getInstallerDownloadUrl();
+      
+      // Validate URL before using it
+      if (!downloadUrl || typeof downloadUrl !== 'string') {
+        throw new Error('Invalid download URL received');
+      }
       
       // Initiate the download
       window.location.href = downloadUrl;
