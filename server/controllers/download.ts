@@ -43,20 +43,45 @@ export const getInstallerUrl = async (req: Request, res: Response) => {
       // Generate a pre-signed URL for the installer
       // The file name in the bucket could be either .exe or .zip format
       const fileName = process.env.INSTALLER_FILENAME || "CloudCanvas-Installer.zip";
+      console.log(`Using installer filename: ${fileName}`);
       
       try {
+        // Print R2 configuration (without sensitive data)
+        console.log(`R2 Configuration:
+          - Account ID: ${process.env.CLOUDFLARE_ACCOUNT_ID ? 'Set' : 'Missing'}
+          - R2 Access Key: ${process.env.R2_ACCESS_KEY_ID ? 'Set' : 'Missing'}
+          - R2 Secret Key: ${process.env.R2_SECRET_ACCESS_KEY ? 'Set' : 'Missing'}
+          - Bucket: ${process.env.CLOUDFLARE_R2_BUCKET || 'cloud-canvas-installers'}
+        `);
+        
+        // Get the download URL
         const url = await r2Service.getDownloadUrl(fileName);
+        
+        // Debug the returned URL
+        console.log(`Generated URL: ${url ? 'Success (URL not shown for security)' : 'Failed (null or undefined)'}`);
+        console.log(`URL type: ${typeof url}`);
+        console.log(`URL length: ${url ? url.length : 'N/A'}`);
         
         if (!url) {
           throw new Error('Invalid download URL generated');
         }
         
+        // Check URL format
+        if (typeof url !== 'string' || !url.startsWith('http')) {
+          console.error(`Invalid URL format received: ${typeof url}`);
+          throw new Error('Invalid URL format received from storage service');
+        }
+        
         console.log(`Generated download URL for user ${userEmail} - file: ${fileName}`);
         
-        return res.status(200).json({
+        // Debug the response being sent
+        const response = {
           success: true,
           downloadUrl: url
-        });
+        };
+        console.log('Sending response:', JSON.stringify({ success: true, downloadUrl: 'present' }));
+        
+        return res.status(200).json(response);
       } catch (storageError) {
         console.error("Error generating download URL from storage:", storageError);
         return res.status(500).json({

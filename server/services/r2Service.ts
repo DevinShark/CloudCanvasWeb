@@ -24,6 +24,7 @@ class R2Service {
     }
 
     try {
+      console.log(`Initializing R2 client for bucket: ${this.bucket}`);
       // Create S3 client for CloudFlare R2
       this.client = new S3Client({
         region: 'auto',
@@ -49,13 +50,17 @@ class R2Service {
    */
   async getDownloadUrl(fileName: string, expirySeconds: number = 3600): Promise<string> {
     try {
+      console.log(`R2Service: Generating download URL for file: ${fileName}`);
+      
       // Check if client is properly configured
       if (!this.isConfigured || !this.client) {
+        console.error('R2Service: client not properly configured');
         throw new Error('R2 client not properly configured');
       }
 
       // Check if fileName is provided
       if (!fileName) {
+        console.error('R2Service: File name is required');
         throw new Error('File name is required');
       }
 
@@ -64,18 +69,37 @@ class R2Service {
         Key: fileName,
       });
 
-      const url = await getSignedUrl(this.client, command, {
-        expiresIn: expirySeconds,
-      });
-
-      if (!url) {
-        throw new Error('Failed to generate signed URL');
+      console.log(`R2Service: Generating signed URL with expiry: ${expirySeconds} seconds`);
+      
+      try {
+        const url = await getSignedUrl(this.client, command, {
+          expiresIn: expirySeconds,
+        });
+  
+        if (!url) {
+          console.error('R2Service: Failed to generate signed URL - returned null/undefined');
+          throw new Error('Failed to generate signed URL');
+        }
+  
+        if (typeof url !== 'string') {
+          console.error(`R2Service: URL is not a string, type: ${typeof url}`);
+          throw new Error('Invalid URL type returned from R2 service');
+        }
+  
+        if (!url.startsWith('http')) {
+          console.error(`R2Service: Invalid URL format, doesn't start with http`);
+          throw new Error('Invalid URL format generated');
+        }
+  
+        console.log(`R2Service: URL generated successfully, length: ${url.length}`);
+        return url;
+      } catch (signError: any) {
+        console.error('R2Service: Error during URL signing:', signError);
+        throw new Error(`Failed to sign URL: ${signError.message || 'Unknown error'}`);
       }
-
-      return url;
-    } catch (error) {
-      console.error('Error generating download URL:', error);
-      throw new Error('Failed to generate download URL');
+    } catch (error: any) {
+      console.error('R2Service: Error generating download URL:', error);
+      throw new Error(`Failed to generate download URL: ${error.message || 'Unknown error'}`);
     }
   }
 }
