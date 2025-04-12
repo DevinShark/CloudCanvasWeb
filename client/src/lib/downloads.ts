@@ -35,6 +35,9 @@ export async function getInstallerDownloadUrl(): Promise<string> {
       throw new Error('Invalid download URL format received from server');
     }
     
+    console.log('[downloads.ts] Before startsWith check - URL:', data.downloadUrl);
+    console.log('[downloads.ts] Before startsWith check - Type:', typeof data.downloadUrl);
+    
     if (!data.downloadUrl.startsWith('http')) {
       console.error('Download URL does not start with http:', data.downloadUrl.substring(0, 10) + '...');
       throw new Error('Invalid URL format received from server');

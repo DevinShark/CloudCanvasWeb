@@ -62,11 +62,16 @@ const UserDashboard = () => {
       const downloadUrl = await getInstallerDownloadUrl();
       
       // Validate URL before using it
+      console.log('[UserDashboard] Received URL from getInstallerDownloadUrl:', downloadUrl);
+      console.log('[UserDashboard] Type of URL:', typeof downloadUrl);
+      
       if (!downloadUrl || typeof downloadUrl !== 'string') {
+        console.error('[UserDashboard] Validation failed. URL:', downloadUrl, 'Type:', typeof downloadUrl);
         throw new Error('Invalid download URL received');
       }
       
       // Initiate the download
+      console.log('[UserDashboard] Assigning window.location.href to:', downloadUrl);
       window.location.href = downloadUrl;
       
       toast({
