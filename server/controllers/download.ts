@@ -11,7 +11,7 @@ export const getInstallerUrl = async (req: Request, res: Response) => {
     if (!req.user) {
       return res.status(401).json({
         success: false,
-        message: "Unauthorized"
+        message: "Unauthorized access. Please log in."
       });
     }
 
@@ -43,26 +43,39 @@ export const getInstallerUrl = async (req: Request, res: Response) => {
       // Generate a pre-signed URL for the installer
       // The file name in the bucket could be either .exe or .zip format
       const fileName = process.env.INSTALLER_FILENAME || "CloudCanvas-Installer.zip";
-      const url = await r2Service.getDownloadUrl(fileName);
       
-      console.log(`Generated download URL for user ${userEmail} - file: ${fileName}`);
-      
-      return res.status(200).json({
-        success: true,
-        downloadUrl: url
-      });
+      try {
+        const url = await r2Service.getDownloadUrl(fileName);
+        
+        if (!url) {
+          throw new Error('Invalid download URL generated');
+        }
+        
+        console.log(`Generated download URL for user ${userEmail} - file: ${fileName}`);
+        
+        return res.status(200).json({
+          success: true,
+          downloadUrl: url
+        });
+      } catch (storageError) {
+        console.error("Error generating download URL from storage:", storageError);
+        return res.status(500).json({
+          success: false,
+          message: "Failed to generate download URL. Please contact support."
+        });
+      }
     } catch (error) {
       console.error("Error checking license:", error);
       return res.status(500).json({
         success: false,
-        message: "Error checking license"
+        message: "Error checking license status. Please try again later."
       });
     }
   } catch (error) {
-    console.error("Error generating download URL:", error);
+    console.error("Error in download controller:", error);
     return res.status(500).json({
       success: false,
-      message: "Server error"
+      message: "Server error. Please try again later."
     });
   }
 }; 

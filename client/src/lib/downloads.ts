@@ -20,6 +20,12 @@ export async function getInstallerDownloadUrl(): Promise<string> {
     }
 
     const data = await response.json();
+    
+    // Validate the download URL before returning it
+    if (!data.downloadUrl || typeof data.downloadUrl !== 'string') {
+      throw new Error('Invalid download URL received from server');
+    }
+    
     return data.downloadUrl;
   } catch (error) {
     console.error('Error getting download URL:', error);
