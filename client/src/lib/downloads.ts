@@ -7,7 +7,8 @@ import { getApiUrl } from '@/config';
 export async function getInstallerDownloadUrl(): Promise<string> {
   try {
     console.log('Fetching download URL from server...');
-    const response = await fetch(`${getApiUrl()}/api/downloads/installer`, {
+    const apiUrl = getApiUrl('/api/downloads/installer');
+    const response = await fetch(apiUrl, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
