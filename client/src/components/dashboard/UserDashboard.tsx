@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download, FileDown } from "lucide-react";
+import { Download, FileDown, ShieldCheck } from "lucide-react";
 import { getCurrentUser, fetchUserLicenses, LicenseDetails } from "@/lib/auth";
 import { getUserSubscription } from "@/lib/paypal";
 import { generateTrialLicense } from "@/lib/licenseGate";
@@ -12,12 +12,22 @@ import { formatDate, formatPlanName, capitalizeFirstLetter } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import LicenseCard from "@/components/dashboard/LicenseCard";
 import ProfileSettings from "@/components/dashboard/ProfileSettings";
+import ReCAPTCHA from "react-google-recaptcha";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 const UserDashboard = () => {
   const [activeTab, setActiveTab] = useState("licenses");
   const [isGeneratingTrial, setIsGeneratingTrial] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [showCaptcha, setShowCaptcha] = useState(false);
   const queryClient = useQueryClient();
+  const recaptchaRef = useRef(null);
   
   const { data: user, isLoading: isLoadingUser } = useQuery({
     queryKey: ["currentUser"],
@@ -49,7 +59,7 @@ const UserDashboard = () => {
     }
   };
   
-  const handleDownload = async () => {
+  const startDownload = async (captchaToken) => {
     try {
       setIsDownloading(true);
       
@@ -87,7 +97,30 @@ const UserDashboard = () => {
       });
     } finally {
       setIsDownloading(false);
+      setShowCaptcha(false);
     }
+  };
+  
+  const handleDownload = () => {
+    // Open the CAPTCHA dialog
+    setShowCaptcha(true);
+  };
+  
+  const handleCaptchaVerified = (token) => {
+    if (token) {
+      // If CAPTCHA is verified, proceed with download
+      startDownload(token);
+    } else {
+      toast({
+        title: "Verification failed",
+        description: "Please complete the CAPTCHA verification to download.",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  const handleCloseCaptcha = () => {
+    setShowCaptcha(false);
   };
   
   const isLoading = isLoadingUser || isLoadingSubscription || isLoadingLicenses || isGeneratingTrial || isDownloading;
@@ -164,7 +197,7 @@ const UserDashboard = () => {
             </CardContent>
           </Card>
           
-          {licenses && licenses.length > 0 && licenses.some(license => license.isActive) ? (
+          {hasActiveLicense && (
             <Card>
               <CardHeader>
                 <CardTitle>Downloads</CardTitle>
@@ -191,7 +224,9 @@ const UserDashboard = () => {
                 </div>
               </CardContent>
             </Card>
-          ) : (
+          )}
+          
+          {!hasActiveLicense && (
             <Card>
               <CardHeader>
                 <CardTitle>Downloads</CardTitle>
@@ -353,6 +388,29 @@ const UserDashboard = () => {
           <ProfileSettings user={user} />
         </TabsContent>
       </Tabs>
+      
+      {/* CAPTCHA Verification Dialog */}
+      <Dialog open={showCaptcha} onOpenChange={handleCloseCaptcha}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Human Verification</DialogTitle>
+            <DialogDescription>
+              Please complete the verification below to download the installer.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center justify-center py-4">
+            <ShieldCheck className="h-12 w-12 text-primary mb-4" />
+            <ReCAPTCHA
+              ref={recaptchaRef}
+              sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI" // Test key, replace with your key in production
+              onChange={handleCaptchaVerified}
+            />
+            <p className="text-xs text-gray-500 mt-4 text-center">
+              This helps us prevent automated downloads and protect our services.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
