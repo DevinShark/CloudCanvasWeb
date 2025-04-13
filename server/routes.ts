@@ -255,7 +255,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Download routes
-  app.get("/api/downloads/installer", requireAuth, downloadController.getInstallerUrl);
+  app.post("/api/downloads/installer", requireAuth, downloadController.getInstallerUrl);
   
   // Contact form route
   app.post("/api/contact", async (req, res) => {

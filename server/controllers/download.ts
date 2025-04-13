@@ -1,10 +1,42 @@
 import { Request, Response } from "express";
 import { r2Service } from "../services/r2Service";
 import { LicenseGateService } from "../services/licenseGate";
+import fetch from "node-fetch";
+
+/**
+ * Verify Cloudflare Turnstile token
+ */
+async function verifyTurnstileToken(token: string, ip: string): Promise<boolean> {
+  try {
+    const url = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
+    const formData = new URLSearchParams();
+    formData.append('secret', process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY || '');
+    formData.append('response', token);
+    formData.append('remoteip', ip);
+
+    const result = await fetch(url, {
+      method: 'POST',
+      body: formData
+    });
+
+    const data = await result.json() as { success: boolean, 'error-codes': string[] };
+    
+    if (!data.success) {
+      console.error('Turnstile verification failed:', data['error-codes']);
+      return false;
+    }
+    
+    return data.success;
+  } catch (error) {
+    console.error('Error verifying Turnstile token:', error);
+    return false;
+  }
+}
 
 /**
  * Generate a download URL for the Cloud Canvas installer
  * Only users with active licenses can download the installer
+ * Requires CAPTCHA verification
  */
 export const getInstallerUrl = async (req: Request, res: Response) => {
   try {
@@ -12,6 +44,27 @@ export const getInstallerUrl = async (req: Request, res: Response) => {
       return res.status(401).json({
         success: false,
         message: "Unauthorized access. Please log in."
+      });
+    }
+
+    // Get and verify CAPTCHA token
+    const { captchaToken } = req.body;
+    
+    if (!captchaToken) {
+      return res.status(400).json({
+        success: false,
+        message: "CAPTCHA verification required"
+      });
+    }
+    
+    // Verify CAPTCHA token
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
+    const isValidToken = await verifyTurnstileToken(captchaToken, ip as string);
+    
+    if (!isValidToken) {
+      return res.status(400).json({
+        success: false,
+        message: "CAPTCHA verification failed"
       });
     }
 

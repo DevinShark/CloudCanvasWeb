@@ -2,18 +2,19 @@ import { getApiUrl } from '@/config';
 
 /**
  * Get a download URL for the Cloud Canvas installer
- * Requires an active license
+ * Requires an active license and a valid CAPTCHA token
  */
-export async function getInstallerDownloadUrl(): Promise<string> {
+export async function getInstallerDownloadUrl(captchaToken: string): Promise<string> {
   try {
-    console.log('Fetching download URL from server...');
+    console.log('Fetching download URL from server with CAPTCHA token...');
     const apiUrl = getApiUrl('/api/downloads/installer');
     const response = await fetch(apiUrl, {
-      method: 'GET',
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       credentials: 'include',
+      body: JSON.stringify({ captchaToken }),
     });
 
     if (!response.ok) {

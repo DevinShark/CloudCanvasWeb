@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download, FileDown, ShieldCheck } from "lucide-react";
+import { Download, FileDown, ShieldCheck, Loader2 } from "lucide-react";
 import { getCurrentUser, fetchUserLicenses, LicenseDetails } from "@/lib/auth";
 import { getUserSubscription } from "@/lib/paypal";
 import { generateTrialLicense } from "@/lib/licenseGate";
@@ -12,13 +12,15 @@ import { formatDate, formatPlanName, capitalizeFirstLetter } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import LicenseCard from "@/components/dashboard/LicenseCard";
 import ProfileSettings from "@/components/dashboard/ProfileSettings";
-import ReCAPTCHA from "react-google-recaptcha";
+import { Turnstile } from 'react-cloudflare-turnstile';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
+  DialogClose,
 } from "@/components/ui/dialog";
 
 const UserDashboard = () => {
@@ -26,8 +28,9 @@ const UserDashboard = () => {
   const [isGeneratingTrial, setIsGeneratingTrial] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [showCaptcha, setShowCaptcha] = useState(false);
+  const [captchaVerified, setCaptchaVerified] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const queryClient = useQueryClient();
-  const recaptchaRef = useRef(null);
   
   const { data: user, isLoading: isLoadingUser } = useQuery({
     queryKey: ["currentUser"],
@@ -59,7 +62,7 @@ const UserDashboard = () => {
     }
   };
   
-  const startDownload = async (captchaToken) => {
+  const startDownload = async (token: string) => {
     try {
       setIsDownloading(true);
       
@@ -69,7 +72,7 @@ const UserDashboard = () => {
       });
       
       // Get the download URL from the server
-      const downloadUrl = await getInstallerDownloadUrl();
+      const downloadUrl = await getInstallerDownloadUrl(token);
       
       // Validate URL before using it
       console.log('[UserDashboard] Received URL from getInstallerDownloadUrl:', downloadUrl);
@@ -106,10 +109,25 @@ const UserDashboard = () => {
     setShowCaptcha(true);
   };
   
-  const handleCaptchaVerified = (token) => {
-    if (token) {
-      // If CAPTCHA is verified, proceed with download
-      startDownload(token);
+  const onCaptchaVerified = useCallback((token: string) => {
+    setCaptchaToken(token);
+    setCaptchaVerified(!!token);
+  }, []);
+
+  const onCaptchaExpired = useCallback(() => {
+    setCaptchaToken(null);
+    setCaptchaVerified(false);
+  }, []);
+  
+  const handleCloseCaptcha = () => {
+    setShowCaptcha(false);
+    setCaptchaToken(null);
+    setCaptchaVerified(false);
+  };
+  
+  const handleCaptchaDownload = () => {
+    if (captchaToken) {
+      startDownload(captchaToken);
     } else {
       toast({
         title: "Verification failed",
@@ -117,10 +135,6 @@ const UserDashboard = () => {
         variant: "destructive",
       });
     }
-  };
-  
-  const handleCloseCaptcha = () => {
-    setShowCaptcha(false);
   };
   
   const isLoading = isLoadingUser || isLoadingSubscription || isLoadingLicenses || isGeneratingTrial || isDownloading;
@@ -400,15 +414,39 @@ const UserDashboard = () => {
           </DialogHeader>
           <div className="flex flex-col items-center justify-center py-4">
             <ShieldCheck className="h-12 w-12 text-primary mb-4" />
-            <ReCAPTCHA
-              ref={recaptchaRef}
-              sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI" // Test key, replace with your key in production
-              onChange={handleCaptchaVerified}
-            />
+            <div className="my-4">
+              <Turnstile
+                sitekey={process.env.REACT_APP_CLOUDFLARE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
+                onVerify={onCaptchaVerified}
+                onExpire={onCaptchaExpired}
+                theme="light"
+              />
+            </div>
             <p className="text-xs text-gray-500 mt-4 text-center">
               This helps us prevent automated downloads and protect our services.
             </p>
           </div>
+          <DialogFooter className="flex justify-between">
+            <DialogClose asChild>
+              <Button type="button" variant="secondary" disabled={isDownloading}>
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button 
+              type="button" 
+              disabled={!captchaVerified || isDownloading}
+              onClick={handleCaptchaDownload}
+            >
+              {isDownloading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Downloading...
+                </>
+              ) : (
+                'Download'
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
