@@ -416,7 +416,7 @@ const UserDashboard = () => {
             <ShieldCheck className="h-12 w-12 text-primary mb-4" />
             <div className="my-4">
               <Turnstile
-                sitekey={import.meta.env.VITE_REACT_APP_CLOUDFLARE_TURNSTILE_SITE_KEY || '0x4AAAAAABK_6neEiKMKO5Ri'}
+                sitekey="0x4AAAAAABK_6neEiKMKO5Ri"
                 onVerify={onCaptchaVerified}
                 onExpire={onCaptchaExpired}
                 theme="light"

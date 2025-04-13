@@ -1,0 +1,1 @@
+$file = "client/src/components/dashboard/UserDashboard.tsx"; $content = Get-Content $file -Raw; $content = $content -replace "sitekey=\{import\.meta\.env\.VITE_REACT_APP_CLOUDFLARE_TURNSTILE_SITE_KEY [^}]*\}", "sitekey=\"0x4AAAAAABK_6neEiKMKO5Ri\""; Set-Content -Path $file -Value $content; Write-Host "File updated successfully."
