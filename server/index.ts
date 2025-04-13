@@ -24,6 +24,7 @@ const allowedOrigins = [
   'https://cloudcanvas-backend.onrender.com',
   'https://cloudcanvas.infinityfree.com',
   'https://cloudcanvas.wuaze.com',
+  'https://cloudcanvas.co.za',
   'http://localhost:3000',  // For local development
   'http://localhost:5173',  // For Vite dev server
   /^https:\/\/.*\.infinityfree\.com$/,  // Allow all infinityfree subdomains
