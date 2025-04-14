@@ -385,3 +385,66 @@ export const updateProfile = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const changePassword = async (req: Request, res: Response) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    
+    // Check if user is authenticated
+    if (!req.user) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'You must be logged in to change your password' 
+      });
+    }
+    
+    const userId = (req.user as any).id;
+    
+    // Get user from storage
+    const user = await storage.getUser(userId);
+    
+    if (!user) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'User not found' 
+      });
+    }
+    
+    // Verify current password
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    
+    if (!isPasswordValid) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'Current password is incorrect' 
+      });
+    }
+    
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    
+    // Update password in storage
+    const updatedUser = await storage.updateUser(userId, { 
+      password: hashedPassword 
+    });
+    
+    if (!updatedUser) {
+      return res.status(500).json({ 
+        success: false,
+        message: 'Failed to update password' 
+      });
+    }
+    
+    return res.status(200).json({ 
+      success: true,
+      message: 'Password updated successfully' 
+    });
+  } catch (error) {
+    console.error('Error changing password:', error);
+    return res.status(500).json({ 
+      success: false,
+      message: 'An error occurred while changing your password' 
+    });
+  }
+};

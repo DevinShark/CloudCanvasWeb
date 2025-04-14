@@ -109,10 +109,31 @@ const ProfileSettings = ({ user }: ProfileSettingsProps) => {
         credentials: 'include',
       });
 
-      const data = await response.json();
+      // Check response content type before parsing
+      const contentType = response.headers.get("content-type");
+      
+      // Log response details for debugging
+      console.log('Change password response:', {
+        status: response.status,
+        statusText: response.statusText,
+        contentType,
+        url: response.url
+      });
+      
+      let data;
+      
+      // Only parse as JSON if the response is actually JSON
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        // If not JSON, get the text and log it
+        const text = await response.text();
+        console.error('Server returned non-JSON response:', text.substring(0, 200) + '...');
+        throw new Error(`Server returned unexpected response type: ${contentType}`);
+      }
 
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to change password');
+        throw new Error(data?.message || `Error (${response.status}): ${response.statusText}`);
       }
 
       toast({
