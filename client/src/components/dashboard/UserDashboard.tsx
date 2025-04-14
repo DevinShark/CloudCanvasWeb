@@ -21,7 +21,86 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
-import { Turnstile } from '@marsidev/react-turnstile';
+
+// Add TypeScript interface for window with Turnstile
+interface TurnstileWindow extends Window {
+  turnstile?: {
+    render: (container: HTMLElement, options: any) => string;
+    remove: (widgetId: string) => void;
+  };
+}
+
+declare const window: TurnstileWindow;
+
+// Custom Turnstile component that uses the Cloudflare Turnstile script directly
+interface TurnstileProps {
+  siteKey: string;
+  onSuccess: (token: string) => void;
+  onError?: (error: any) => void;
+  onExpire?: () => void;
+}
+
+const Turnstile: React.FC<TurnstileProps> = ({ siteKey, onSuccess, onError, onExpire }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const widgetIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    // Load the Turnstile script if it's not already loaded
+    if (!window.turnstile) {
+      const script = document.createElement('script');
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
+
+      return () => {
+        document.head.removeChild(script);
+      };
+    }
+
+    return () => {
+      // Clean up the widget when the component unmounts
+      if (widgetIdRef.current && window.turnstile) {
+        window.turnstile.remove(widgetIdRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    // Initialize the widget when the script is loaded and the container is ready
+    const interval = setInterval(() => {
+      if (window.turnstile && containerRef.current) {
+        clearInterval(interval);
+        
+        // Allow time for the script to fully initialize
+        setTimeout(() => {
+          try {
+            if (widgetIdRef.current && window.turnstile) {
+              window.turnstile.remove(widgetIdRef.current);
+            }
+            
+            widgetIdRef.current = window.turnstile.render(containerRef.current, {
+              sitekey: siteKey,
+              callback: onSuccess,
+              'error-callback': onError,
+              'expired-callback': onExpire,
+              theme: 'light',
+            });
+          } catch (err) {
+            console.error('Error rendering Turnstile widget:', err);
+            if (onError) onError(err);
+          }
+        }, 500);
+      }
+    }, 100);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [siteKey, onSuccess, onError, onExpire]);
+
+  return <div ref={containerRef} className="cf-turnstile"></div>;
+};
 
 const UserDashboard = () => {
   const [activeTab, setActiveTab] = useState("licenses");
@@ -429,9 +508,6 @@ const UserDashboard = () => {
                   onCaptchaExpired();
                 }}
                 onExpire={onCaptchaExpired}
-                options={{
-                  theme: 'light',
-                }}
               />
             </div>
             <p className="text-xs text-gray-500 mt-4 text-center">
