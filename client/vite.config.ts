@@ -20,6 +20,9 @@ export default defineConfig({
       '@shared': resolve(__dirname, '../shared'),
     },
   },
+  optimizeDeps: {
+    include: ['@marsidev/react-turnstile']
+  },
   build: {
     outDir: './dist',
     sourcemap: true,
@@ -28,7 +31,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom', 'wouter'],
+          vendor: ['react', 'react-dom', 'wouter', '@marsidev/react-turnstile'],
         },
       }
     },
