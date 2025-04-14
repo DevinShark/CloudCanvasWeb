@@ -17,6 +17,16 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { updateUserProfile } from "@/lib/auth";
 import { toast } from "@/hooks/use-toast";
 import { UserProfile } from "@/types";
+import { getApiUrl } from "@/config";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 
 interface ProfileSettingsProps {
   user: UserProfile;
@@ -29,8 +39,20 @@ const profileSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email" }).optional(),
 });
 
+// Password change schema
+const passwordSchema = z.object({
+  currentPassword: z.string().min(8, { message: "Password must be at least 8 characters" }),
+  newPassword: z.string().min(8, { message: "Password must be at least 8 characters" }),
+  confirmPassword: z.string().min(8, { message: "Password must be at least 8 characters" }),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
+});
+
 const ProfileSettings = ({ user }: ProfileSettingsProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
   
   const form = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
@@ -39,6 +61,15 @@ const ProfileSettings = ({ user }: ProfileSettingsProps) => {
       lastName: user?.lastName || "",
       company: user?.company || "",
       email: user?.email || "",
+    },
+  });
+
+  const passwordForm = useForm<z.infer<typeof passwordSchema>>({
+    resolver: zodResolver(passwordSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
     },
   });
 
@@ -59,6 +90,47 @@ const ProfileSettings = ({ user }: ProfileSettingsProps) => {
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const onPasswordSubmit = async (values: z.infer<typeof passwordSchema>) => {
+    setIsChangingPassword(true);
+    try {
+      // Call the API to change password using the getApiUrl function
+      const response = await fetch(getApiUrl("/api/auth/change-password"), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          currentPassword: values.currentPassword,
+          newPassword: values.newPassword,
+        }),
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to change password');
+      }
+
+      toast({
+        title: "Password Updated",
+        description: "Your password has been successfully changed",
+      });
+      
+      passwordForm.reset();
+      setShowPasswordDialog(false);
+    } catch (error) {
+      console.error("Password change error:", error);
+      toast({
+        title: "Password Change Failed",
+        description: error instanceof Error ? error.message : "There was an error changing your password",
+        variant: "destructive",
+      });
+    } finally {
+      setIsChangingPassword(false);
     }
   };
 
@@ -161,7 +233,7 @@ const ProfileSettings = ({ user }: ProfileSettingsProps) => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button variant="outline" onClick={() => window.location.href = '/forgot-password'}>
+          <Button variant="outline" onClick={() => setShowPasswordDialog(true)}>
             Change Password
           </Button>
         </CardContent>
@@ -202,6 +274,69 @@ const ProfileSettings = ({ user }: ProfileSettingsProps) => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Password Change Dialog */}
+      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Change Password</DialogTitle>
+            <DialogDescription>
+              Enter your current password and a new password below.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...passwordForm}>
+            <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
+              <FormField
+                control={passwordForm.control}
+                name="currentPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Current Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="••••••••" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={passwordForm.control}
+                name="newPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>New Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="••••••••" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={passwordForm.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirm New Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="••••••••" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter className="mt-6">
+                <DialogClose asChild>
+                  <Button type="button" variant="outline">Cancel</Button>
+                </DialogClose>
+                <Button type="submit" disabled={isChangingPassword}>
+                  {isChangingPassword ? "Changing..." : "Change Password"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
