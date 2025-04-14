@@ -12,7 +12,6 @@ import { formatDate, formatPlanName, capitalizeFirstLetter } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import LicenseCard from "@/components/dashboard/LicenseCard";
 import ProfileSettings from "@/components/dashboard/ProfileSettings";
-import { Turnstile } from 'react-cloudflare-turnstile';
 import {
   Dialog,
   DialogContent,
@@ -22,6 +21,7 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
+import { Turnstile } from '@marsidev/react-turnstile';
 
 const UserDashboard = () => {
   const [activeTab, setActiveTab] = useState("licenses");
@@ -129,9 +129,10 @@ const UserDashboard = () => {
     if (captchaToken) {
       startDownload(captchaToken);
     } else {
+      console.error("Attempted download without a valid CAPTCHA token.");
       toast({
-        title: "Verification failed",
-        description: "Please complete the CAPTCHA verification to download.",
+        title: "Verification Error",
+        description: "CAPTCHA token is missing. Please try verifying again.",
         variant: "destructive",
       });
     }
@@ -416,10 +417,21 @@ const UserDashboard = () => {
             <ShieldCheck className="h-12 w-12 text-primary mb-4" />
             <div className="my-4">
               <Turnstile
-                sitekey="0x4AAAAAABK_6neEiKMKO5Ri"
-                onVerify={onCaptchaVerified}
+                siteKey="0x4AAAAAABK_6neEiKMKO5Ri"
+                onSuccess={onCaptchaVerified}
+                onError={() => {
+                  console.error("Turnstile verification failed.");
+                  toast({
+                    title: "Verification Failed",
+                    description: "Could not verify CAPTCHA. Please try again.",
+                    variant: "destructive",
+                  });
+                  onCaptchaExpired();
+                }}
                 onExpire={onCaptchaExpired}
-                theme="light"
+                options={{
+                  theme: 'light',
+                }}
               />
             </div>
             <p className="text-xs text-gray-500 mt-4 text-center">

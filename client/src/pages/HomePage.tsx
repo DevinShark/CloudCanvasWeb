@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import HeroSection from "@/components/home/HeroSection";
-import TrustedBySection from "@/components/home/TrustedBySection";
 import WorkflowSection from "@/components/home/WorkflowSection";
 import FeaturesSection from "@/components/home/FeaturesSection";
 import ApplicationsSection from "@/components/home/ApplicationsSection";
@@ -51,7 +50,6 @@ const HomePage = () => {
       <Header />
       <main>
         <HeroSection />
-        <TrustedBySection />
         <WorkflowSection />
         <FeaturesSection />
         <ApplicationsSection />

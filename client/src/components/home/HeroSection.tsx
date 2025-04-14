@@ -3,14 +3,35 @@ import { Button } from "@/components/ui/button";
 import { Star } from "lucide-react";
 
 const HeroSection = () => {
+  const scrollToPricing = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    const element = document.getElementById('pricing');
+    if (element) {
+      const headerHeight = 80;
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - headerHeight;
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   return (
     <section className="relative">
       <div className="absolute inset-0 overflow-hidden">
         <div 
-          className="w-full h-full bg-gradient-to-br from-primary to-secondary"
+          className="w-full h-full bg-cover bg-center"
+          style={{ 
+            backgroundImage: "url('/CC_Splash.jpeg')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            transform: "scale(1.2)",
+            transformOrigin: "center"
+          }}
           aria-hidden="true"
         ></div>
-        <div className="absolute inset-0 gradient-bg"></div>
+        <div className="absolute inset-0 bg-black bg-opacity-40"></div>
       </div>
       
       <div className="relative container mx-auto px-6 pt-32 pb-24 md:pt-48 md:pb-32">
@@ -21,48 +42,31 @@ const HeroSection = () => {
           <p className="text-xl md:text-2xl opacity-90 mb-8">
             Transform your geospatial data into actionable insights with our powerful data visualization and analysis tool.
           </p>
-          <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
-            <a 
-              href="#pricing"
-              onClick={(e) => {
-                e.preventDefault();
-                const element = document.getElementById('pricing');
-                if (element) {
-                  const headerHeight = 80;
-                  const elementPosition = element.getBoundingClientRect().top;
-                  const offsetPosition = elementPosition + window.pageYOffset - headerHeight;
-                  window.scrollTo({
-                    top: offsetPosition,
-                    behavior: 'smooth'
-                  });
-                }
-              }}
-            >
-              <Button size="lg" className="bg-secondary text-white hover:bg-opacity-90 transition-colors duration-200">
+          
+          <div className="flex flex-col sm:flex-row gap-4">
+            <a href="#pricing" onClick={scrollToPricing}>
+              <Button className="bg-secondary hover:bg-secondary/90 text-white py-2 px-6 rounded-md w-full sm:w-auto text-lg">
                 Get Started
               </Button>
             </a>
-            <a 
-              href="#demo"
-              onClick={(e) => {
-                e.preventDefault();
-                const element = document.getElementById('demo');
-                if (element) {
-                  const headerHeight = 80;
-                  const elementPosition = element.getBoundingClientRect().top;
-                  const offsetPosition = elementPosition + window.pageYOffset - headerHeight;
-                  window.scrollTo({
-                    top: offsetPosition,
-                    behavior: 'smooth'
-                  });
-                }
-              }}
-            >
-              <Button size="lg" variant="outline" className="border-2 border-white text-white hover:bg-white hover:text-primary transition-colors duration-200">
-                Request Demo
+            <Link href="/register">
+              <Button variant="outline" className="bg-transparent border-white text-white border-2 hover:bg-white/10 py-2 px-6 rounded-md w-full sm:w-auto text-lg">
+                Request Trial
               </Button>
-            </a>
+            </Link>
           </div>
+          
+          <div className="mt-8 flex items-center space-x-2">
+            <div className="flex">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
+              ))}
+            </div>
+            <span className="text-white opacity-90">
+              Trusted by over 1,000 professionals worldwide
+            </span>
+          </div>
+          
           <div className="mt-8">
             <div className="flex items-center">
               <div className="inline-flex px-3 py-1 rounded-full bg-secondary bg-opacity-30">

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Menu, X, ChevronDown, CloudDownload } from "lucide-react";
+import { Menu, X, ChevronDown } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getCurrentUser } from "@/lib/auth";
 import { 
@@ -69,6 +69,14 @@ const Header = () => {
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
   };
+  
+  const scrollToTop = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
 
   return (
     <header className={`fixed w-full z-50 transition-all duration-300 ${
@@ -77,9 +85,11 @@ const Header = () => {
       <div className="container mx-auto px-6 py-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-2">
-            <Link href="/" className="flex items-center space-x-2 text-2xl font-bold text-primary">
-              <CloudDownload className="h-8 w-8" />
-              <span>CloudCanvas</span>
+            <Link href="/">
+              <a className="flex items-center space-x-2 text-2xl font-bold text-primary" onClick={scrollToTop}>
+                <img src="/CC_icon.ico" alt="CloudCanvas" className="h-8 w-8" />
+                <span>CloudCanvas</span>
+              </a>
             </Link>
           </div>
           

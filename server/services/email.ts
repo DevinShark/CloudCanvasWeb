@@ -318,6 +318,39 @@ export class EmailService {
     await transporter.sendMail(mailOptions);
   }
   
+  // Send demo request notification email to admin
+  static async sendDemoRequestNotificationEmail(
+    fullName: string,
+    email: string,
+    company: string,
+    industry: string,
+    message: string
+  ): Promise<void> {
+    const mailOptions = {
+      from: process.env.EMAIL_FROM || "Cloud Canvas <no-reply@cloudcanvas.com>",
+      to: "dms@live.co.za", // Forward to this email
+      subject: `[Cloud Canvas] New Demo Request: ${fullName} from ${company}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2B3F6C; margin-bottom: 20px;">New Demo Request Submission</h2>
+          <p>A new demo request has been submitted with the following details:</p>
+          
+          <div style="background-color: #f5f7fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+            <p><strong>Name:</strong> ${fullName}</p>
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Company:</strong> ${company}</p>
+            <p><strong>Industry:</strong> ${industry}</p>
+            ${message ? `<p><strong>Additional Message:</strong></p><p style="white-space: pre-wrap;">${message}</p>` : ''}
+          </div>
+          
+          <p>You can respond directly to this person by replying to their email: ${email}</p>
+        </div>
+      `,
+    };
+    
+    await transporter.sendMail(mailOptions);
+  }
+  
   // Send contact form confirmation email
   static async sendContactFormConfirmationEmail(
     name: string,
@@ -338,6 +371,38 @@ export class EmailService {
           <hr style="border: 1px solid #eee; margin: 30px 0;" />
           <p>If you have any urgent concerns, please contact our support team directly at support@cloudcanvas.com.</p>
           <p style="font-size: 12px; color: #666;">Thank you for your interest in Cloud Canvas!</p>
+        </div>
+      `,
+    };
+    
+    await transporter.sendMail(mailOptions);
+  }
+  
+  // Send contact form notification email to admin
+  static async sendContactFormNotificationEmail(
+    name: string,
+    email: string,
+    subject: string,
+    message: string
+  ): Promise<void> {
+    const mailOptions = {
+      from: process.env.EMAIL_FROM || "Cloud Canvas <no-reply@cloudcanvas.com>",
+      to: "dms@live.co.za", // Forward to this email
+      subject: `[Cloud Canvas] New Contact Form Submission: ${subject}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2B3F6C; margin-bottom: 20px;">New Contact Form Submission</h2>
+          <p>A new contact form has been submitted with the following details:</p>
+          
+          <div style="background-color: #f5f7fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+            <p><strong>Name:</strong> ${name}</p>
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Subject:</strong> ${subject}</p>
+            <p><strong>Message:</strong></p>
+            <p style="white-space: pre-wrap;">${message}</p>
+          </div>
+          
+          <p>You can respond directly to this person by replying to their email: ${email}</p>
         </div>
       `,
     };

@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import session from "express-session";
@@ -7,6 +7,9 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import bcrypt from "bcryptjs";
 import axios from "axios";
+import { v4 as uuid } from "uuid";
+import { PostgresStorage } from "./storage/pg";
+import { EmailService } from "./services/email";
 
 // Import controllers
 import * as authController from "./controllers/auth";
@@ -18,6 +21,20 @@ import * as downloadController from "./controllers/download";
 
 // Import middleware
 import { requireAuth } from "./middleware/auth";
+
+// Create a memory store for sessions
+const MemoryStore = require("memorystore")(session);
+
+// Create storage instance
+const storage = new PostgresStorage();
+
+// Authentication middleware
+function requireAuth(req: Request, res: Response, next: NextFunction) {
+  if (!req.session.user) {
+    return res.status(401).json({ success: false, message: "Authentication required" });
+  }
+  next();
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Memory store for session
@@ -240,6 +257,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: message || ""
       });
       
+      // Send confirmation email to the user
+      await EmailService.sendDemoRequestConfirmationEmail(
+        fullName,
+        email,
+        company,
+        industry
+      );
+
+      // Send notification email to the admin
+      await EmailService.sendDemoRequestNotificationEmail(
+        fullName,
+        email,
+        company,
+        industry,
+        message || ""
+      );
+      
       res.status(201).json({
         success: true,
         message: "Demo request received",
@@ -269,6 +303,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         subject,
         message
       });
+
+      // Send confirmation email to the user
+      await EmailService.sendContactFormConfirmationEmail(
+        name,
+        email,
+        subject
+      );
+
+      // Send notification email to the admin
+      await EmailService.sendContactFormNotificationEmail(
+        name,
+        email,
+        subject,
+        message
+      );
       
       res.status(201).json({
         success: true,
