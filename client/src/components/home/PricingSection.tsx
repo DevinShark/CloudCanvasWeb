@@ -10,45 +10,41 @@ const PricingSection = () => {
   
   const plans: PricingPlan[] = [
     {
-      id: "standard",
-      name: "Standard",
-      description: "Perfect for individual professionals",
-      monthlyPrice: 59,
-      annualPrice: 708, // $59 * 12
+      id: "trial",
+      name: "Trial",
+      description: "Try Cloud Canvas free for 7 days. No credit card required.",
+      monthlyPrice: 0,
+      annualPrice: 0,
       features: [
         "Single user license",
-        "Core processing tools",
-        "5GB cloud storage",
+        "7-day full access to all features",
         "Email support"
       ]
     },
     {
-      id: "professional",
-      name: "Professional",
-      description: "For advanced users with complex needs",
-      monthlyPrice: 99,
-      annualPrice: 1188, // $99 * 12
+      id: "standard",
+      name: "Standard",
+      description: "For individuals who need full access on a monthly or annual basis.",
+      monthlyPrice: 75,
+      annualPrice: 60 * 12, // $60 * 12 = $720
       features: [
         "Single user license",
-        "All processing tools",
-        "20GB cloud storage",
-        "Priority email & phone support",
-        "Advanced analytics features"
-      ],
-      isPopular: true
+        "Full access to all features",
+        "Email support",
+        "Monthly recurring subscription"
+      ]
     },
     {
       id: "enterprise",
       name: "Enterprise",
-      description: "For teams and organizations",
-      monthlyPrice: 249,
-      annualPrice: 2988, // $249 * 12
+      description: "For teams and organizations needing multiple licenses and priority support.",
+      monthlyPrice: 300,
+      annualPrice: 240 * 12, // $240 * 12 = $2880
       features: [
-        "5 user licenses",
-        "All processing tools + API access",
-        "100GB cloud storage",
-        "24/7 dedicated support",
-        "Custom integration support"
+        "5 user licenses (bulk discount)",
+        "Full access to all features",
+        "Priority email support",
+        "Suggest tool implementation requests for future releases"
       ]
     }
   ];

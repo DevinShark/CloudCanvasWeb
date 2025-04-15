@@ -9,9 +9,23 @@ interface PricingCardProps {
   isAnnual: boolean;
 }
 
+// Helper to check login status (simple localStorage/session check, or replace with your auth logic)
+function isLoggedIn() {
+  // This is a placeholder. Replace with your actual auth check if needed.
+  return !!localStorage.getItem("authToken") || !!sessionStorage.getItem("authToken");
+}
+
 const PricingCard = ({ plan, isAnnual }: PricingCardProps) => {
   const price = isAnnual ? plan.annualPrice / 12 : plan.monthlyPrice;
   const totalPrice = isAnnual ? plan.annualPrice : null;
+
+  // Special logic for Trial plan button
+  let buttonHref = `/checkout/${plan.id}`;
+  let buttonText = `Choose ${plan.name}`;
+  if (plan.id === "trial") {
+    buttonHref = isLoggedIn() ? "/dashboard" : "/register";
+    buttonText = "Start Free Trial";
+  }
 
   return (
     <div
@@ -31,9 +45,9 @@ const PricingCard = ({ plan, isAnnual }: PricingCardProps) => {
         <p className="text-gray-600 mb-6">{plan.description}</p>
         
         <div className="mb-6">
-          <span className="text-4xl font-bold">${price}</span>
-          <span className="text-gray-600">/month</span>
-          {isAnnual && (
+          <span className="text-4xl font-bold">{plan.id === "trial" ? "Free" : `$${price}`}</span>
+          {plan.id !== "trial" && <span className="text-gray-600">/month</span>}
+          {isAnnual && plan.id !== "trial" && (
             <p className="text-sm text-gray-500 mt-1">
               Billed annually (${totalPrice})
             </p>
@@ -51,7 +65,7 @@ const PricingCard = ({ plan, isAnnual }: PricingCardProps) => {
       </div>
       
       <div className="px-6 pb-6">
-        <Link href={`/checkout/${plan.id}`}>
+        <Link href={buttonHref}>
           <Button
             className={cn(
               "w-full",
@@ -61,7 +75,7 @@ const PricingCard = ({ plan, isAnnual }: PricingCardProps) => {
             )}
             variant={plan.isPopular ? "default" : "outline"}
           >
-            Choose {plan.name}
+            {buttonText}
           </Button>
         </Link>
       </div>
