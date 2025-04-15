@@ -30,6 +30,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Link } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ProfileSettingsProps {
   user: UserProfile & { emailPreferences?: { newsletter?: boolean; productUpdates?: boolean; promotions?: boolean; } };
@@ -67,13 +68,14 @@ const ProfileSettings = ({ user }: ProfileSettingsProps) => {
   const [showDataPrivacyDialog, setShowDataPrivacyDialog] = useState(false);
   const [isSavingEmailPrefs, setIsSavingEmailPrefs] = useState(false);
 
-  // Initialize email preferences state (use user data if available, else default)
-  const initialEmailPrefs = user?.emailPreferences || {
-    newsletter: true,
-    productUpdates: true,
-    promotions: false,
-  };
-  const [currentEmailPrefs, setCurrentEmailPrefs] = useState(initialEmailPrefs);
+  const queryClient = useQueryClient();
+
+  // Use user prop for initial state
+  const [currentEmailPrefs, setCurrentEmailPrefs] = useState({
+    newsletter: user.emailNewsletter ?? true,
+    productUpdates: user.emailProductUpdates ?? true,
+    promotions: user.emailPromotions ?? false,
+  });
 
   const form = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
@@ -176,20 +178,28 @@ const ProfileSettings = ({ user }: ProfileSettingsProps) => {
     }
   };
 
+  // When dialog opens, sync state with user prop
+  const handleOpenEmailPrefsDialog = () => {
+    setCurrentEmailPrefs({
+      newsletter: user.emailNewsletter ?? true,
+      productUpdates: user.emailProductUpdates ?? true,
+      promotions: user.emailPromotions ?? false,
+    });
+    setShowEmailPrefsDialog(true);
+  };
+
   // Handler for saving email preferences
   const onEmailPrefsSubmit = async () => {
     setIsSavingEmailPrefs(true);
     try {
-      console.log("Saving email preferences:", currentEmailPrefs);
-      await updateEmailPreferences(currentEmailPrefs); // Call the actual API function
-
+      await updateEmailPreferences(currentEmailPrefs);
       toast({
         title: "Preferences Updated",
         description: "Your email notification settings have been saved.",
       });
       setShowEmailPrefsDialog(false);
-      // Optionally: Refetch user data if preferences are part of the main user query
-      // queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+      // Refetch user data so UI is up to date
+      queryClient.invalidateQueries({ queryKey: ["currentUser"] });
     } catch (error) {
       console.error("Email preferences update error:", error);
       const errorMessage = error instanceof Error ? error.message : (error as any)?.message || "Could not save email preferences.";
@@ -327,7 +337,7 @@ const ProfileSettings = ({ user }: ProfileSettingsProps) => {
                 <h4 className="font-medium">Email Notifications</h4>
                 <p className="text-sm text-gray-500">Receive updates about your account and subscriptions</p>
               </div>
-              <Button variant="outline" onClick={() => setShowEmailPrefsDialog(true)}>Manage</Button>
+              <Button variant="outline" onClick={handleOpenEmailPrefsDialog}>Manage</Button>
             </div>
             
             <div className="flex items-center justify-between">
