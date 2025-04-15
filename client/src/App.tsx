@@ -10,6 +10,7 @@ import FeatureDetailPage from "@/pages/FeatureDetailPage";
 import VerifyEmailPage from "@/pages/VerifyEmailPage";
 import SuccessPage from "@/pages/SuccessPage";
 import NotFound from "@/pages/not-found";
+import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import { ErrorBoundary } from "react-error-boundary";
 
 function ErrorFallback({ error }: { error: Error }) {
@@ -43,6 +44,7 @@ function App() {
         <Route path="/features/:featureId" component={FeatureDetailPage} />
         <Route path="/verify-email/:token" component={VerifyEmailPage} />
         <Route path="/success" component={SuccessPage} />
+        <Route path="/privacy-policy" component={PrivacyPolicy} />
         <Route component={NotFound} />
       </Switch>
     </ErrorBoundary>
