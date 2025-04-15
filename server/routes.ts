@@ -161,7 +161,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/reset-password", authController.resetPassword);
   app.get("/api/auth/me", requireAuth, authController.getCurrentUser);
   app.patch("/api/auth/profile", requireAuth, authController.updateProfile);
-  app.post("/api/auth/change-password", authController.changePassword);
+  app.post("/api/auth/change-password", requireAuth, authController.changePassword);
+  app.patch("/api/auth/preferences", requireAuth, authController.updateEmailPreferences);
   
   // Subscription routes
   app.post("/api/subscriptions/create", requireAuth, subscriptionController.createSubscription);

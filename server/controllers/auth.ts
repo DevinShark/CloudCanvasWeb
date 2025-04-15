@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import passport from "passport";
 import { storage } from "../storage";
-import { insertUserSchema, loginSchema, passwordResetRequestSchema, passwordResetSchema } from "@shared/schema";
+import { insertUserSchema, loginSchema, passwordResetRequestSchema, passwordResetSchema, updateEmailPrefsSchema } from "@shared/schema";
 import { EmailService } from "../services/email";
 
 // Register a new user
@@ -445,6 +445,49 @@ export const changePassword = async (req: Request, res: Response) => {
     return res.status(500).json({ 
       success: false,
       message: 'An error occurred while changing your password' 
+    });
+  }
+};
+
+// New controller function for updating email preferences
+export const updateEmailPreferences = async (req: Request, res: Response) => {
+  try {
+    // Validate authentication
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+    const userId = (req.user as any).id;
+
+    // Validate request body
+    const validationResult = updateEmailPrefsSchema.safeParse(req.body);
+    if (!validationResult.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid preference data",
+        errors: validationResult.error.errors,
+      });
+    }
+
+    const preferencesToUpdate = validationResult.data;
+
+    // Update user preferences in storage
+    const updatedUser = await storage.updateUser(userId, preferencesToUpdate);
+
+    if (!updatedUser) {
+      // This could mean user not found or update failed
+      return res.status(404).json({ success: false, message: "User not found or update failed" });
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      message: "Email preferences updated successfully" 
+    });
+
+  } catch (error) {
+    console.error("Error updating email preferences:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Server error updating email preferences" 
     });
   }
 };

@@ -29,9 +29,46 @@ export class PostgresStorage implements IStorage {
     return results[0];
   }
 
-  async updateUser(id: number, updates: Partial<User>): Promise<User | undefined> {
-    const results = await db.update(users).set(updates).where(eq(users.id, id)).returning();
-    return results[0];
+  async updateUser(userId: number, updates: Partial<InsertUser>): Promise<User | undefined> {
+    try {
+      // Explicitly list allowed update fields from InsertUser for security
+      // Note: We use InsertUser type here for the input 'updates'
+      const allowedUpdates: { [key in keyof Partial<InsertUser>]?: any } = {};
+      
+      // Fields common to User and InsertUser
+      if (updates.firstName !== undefined) allowedUpdates.firstName = updates.firstName;
+      if (updates.lastName !== undefined) allowedUpdates.lastName = updates.lastName;
+      if (updates.company !== undefined) allowedUpdates.company = updates.company;
+      if (updates.password !== undefined) allowedUpdates.password = updates.password; // Allow password update
+      
+      // Fields potentially in User but handled by specific methods (like tokens, verification)
+      // We generally shouldn't update these via the generic updateUser
+      // if (updates.isVerified !== undefined) allowedUpdates.isVerified = updates.isVerified;
+      // if (updates.verificationToken !== undefined) allowedUpdates.verificationToken = updates.verificationToken;
+      // if (updates.resetPasswordToken !== undefined) allowedUpdates.resetPasswordToken = updates.resetPasswordToken;
+
+      // Add email preferences (these are now in InsertUser via schema.ts)
+      if (updates.emailNewsletter !== undefined) allowedUpdates.emailNewsletter = updates.emailNewsletter;
+      if (updates.emailProductUpdates !== undefined) allowedUpdates.emailProductUpdates = updates.emailProductUpdates;
+      if (updates.emailPromotions !== undefined) allowedUpdates.emailPromotions = updates.emailPromotions;
+
+      if (Object.keys(allowedUpdates).length === 0) {
+        console.warn("updateUser called with no valid fields to update for userId:", userId);
+        return this.getUser(userId); // Return current user if no valid updates
+      }
+
+      const result = await this.db
+        .update(users)
+        .set(allowedUpdates) // Drizzle's .set works with the fields defined in the 'users' table
+        .where(eq(users.id, userId))
+        .returning(); // Returns the updated row(s) matching the 'User' type
+      
+      // Return User | undefined as per IStorage
+      return result[0] || undefined;
+    } catch (error) {
+      console.error("Error updating user:", error);
+      return undefined; // Return undefined on error as per IStorage
+    }
   }
 
   async setUserVerified(id: number, isVerified: boolean): Promise<User | undefined> {

@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { updateUserProfile } from "@/lib/auth";
+import { updateUserProfile, updateEmailPreferences } from "@/lib/auth";
 import { toast } from "@/hooks/use-toast";
 import { UserProfile } from "@/types";
 import { getApiUrl } from "@/config";
@@ -180,21 +180,22 @@ const ProfileSettings = ({ user }: ProfileSettingsProps) => {
   const onEmailPrefsSubmit = async () => {
     setIsSavingEmailPrefs(true);
     try {
-      // Placeholder: Replace with actual API call
       console.log("Saving email preferences:", currentEmailPrefs);
-      // await updateEmailPreferences(currentEmailPrefs); // Function to be created in lib/auth.ts
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      await updateEmailPreferences(currentEmailPrefs); // Call the actual API function
 
       toast({
         title: "Preferences Updated",
         description: "Your email notification settings have been saved.",
       });
       setShowEmailPrefsDialog(false);
+      // Optionally: Refetch user data if preferences are part of the main user query
+      // queryClient.invalidateQueries({ queryKey: ["currentUser"] });
     } catch (error) {
       console.error("Email preferences update error:", error);
+      const errorMessage = error instanceof Error ? error.message : (error as any)?.message || "Could not save email preferences.";
       toast({
         title: "Update Failed",
-        description: "Could not save email preferences.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

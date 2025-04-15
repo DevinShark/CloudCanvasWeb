@@ -192,3 +192,41 @@ export const fetchUserLicenses = async (): Promise<LicenseDetails[]> => {
   }
 };
 // --- END NEW FUNCTION --- 
+
+// --- NEW FUNCTION for Email Preferences ---
+export const updateEmailPreferences = async (prefs: { 
+  newsletter?: boolean; 
+  productUpdates?: boolean; 
+  promotions?: boolean; 
+}): Promise<void> => {
+  try {
+    const apiUrl = getApiUrl("/api/auth/preferences");
+    console.log("Updating email preferences to:", apiUrl, prefs);
+    
+    const response = await axios.patch<{ success: boolean; message?: string }>(
+      apiUrl,
+      prefs,
+      {
+        withCredentials: true, // Ensure cookies are sent
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        }
+      }
+    );
+
+    console.log("Update Email Prefs response:", response.data);
+
+    if (!response.data.success) {
+      throw new Error(response.data.message || "Failed to update preferences");
+    }
+
+    // Toast is handled in the component
+
+  } catch (error: any) {
+    console.error("Error updating email preferences:", error.response ? error.response.data : error);
+    // Re-throw the error so the component can catch it and show a toast
+    throw error.response?.data || error;
+  }
+};
+// --- END NEW FUNCTION ---

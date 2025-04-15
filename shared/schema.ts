@@ -13,15 +13,32 @@ export const users = pgTable("users", {
   isVerified: boolean("is_verified").default(false).notNull(),
   verificationToken: text("verification_token"),
   resetPasswordToken: text("reset_password_token"),
+  // Email Preferences - non-invasive defaults
+  emailNewsletter: boolean("email_newsletter").default(true).notNull(), // Opt-in by default for general news
+  emailProductUpdates: boolean("email_product_updates").default(true).notNull(), // Opt-in by default for important updates
+  emailPromotions: boolean("email_promotions").default(false).notNull(), // Opt-out by default for marketing
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
+export const insertUserSchema = createInsertSchema(users, {
+  // You can add custom validation here if needed
+}).pick({
   email: true,
   password: true,
   firstName: true,
   lastName: true,
-  company: true
+  company: true,
+  // Allow setting preferences during insert, but they are optional
+  emailNewsletter: z.boolean().optional(), 
+  emailProductUpdates: z.boolean().optional(),
+  emailPromotions: z.boolean().optional(),
+});
+
+// Define a schema specifically for updating preferences
+export const updateEmailPrefsSchema = z.object({
+  emailNewsletter: z.boolean().optional(),
+  emailProductUpdates: z.boolean().optional(),
+  emailPromotions: z.boolean().optional(),
 });
 
 // Subscription model
