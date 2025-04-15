@@ -27,9 +27,12 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Link } from "wouter";
 
 interface ProfileSettingsProps {
-  user: UserProfile;
+  user: UserProfile & { emailPreferences?: { newsletter?: boolean; productUpdates?: boolean; promotions?: boolean; } };
 }
 
 const profileSchema = z.object({
@@ -49,11 +52,29 @@ const passwordSchema = z.object({
   path: ["confirmPassword"],
 });
 
+// Email preferences schema
+const emailPrefsSchema = z.object({
+  newsletter: z.boolean().optional(),
+  productUpdates: z.boolean().optional(),
+  promotions: z.boolean().optional(),
+});
+
 const ProfileSettings = ({ user }: ProfileSettingsProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
-  
+  const [showEmailPrefsDialog, setShowEmailPrefsDialog] = useState(false);
+  const [showDataPrivacyDialog, setShowDataPrivacyDialog] = useState(false);
+  const [isSavingEmailPrefs, setIsSavingEmailPrefs] = useState(false);
+
+  // Initialize email preferences state (use user data if available, else default)
+  const initialEmailPrefs = user?.emailPreferences || {
+    newsletter: true,
+    productUpdates: true,
+    promotions: false,
+  };
+  const [currentEmailPrefs, setCurrentEmailPrefs] = useState(initialEmailPrefs);
+
   const form = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -153,6 +174,37 @@ const ProfileSettings = ({ user }: ProfileSettingsProps) => {
     } finally {
       setIsChangingPassword(false);
     }
+  };
+
+  // Handler for saving email preferences
+  const onEmailPrefsSubmit = async () => {
+    setIsSavingEmailPrefs(true);
+    try {
+      // Placeholder: Replace with actual API call
+      console.log("Saving email preferences:", currentEmailPrefs);
+      // await updateEmailPreferences(currentEmailPrefs); // Function to be created in lib/auth.ts
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+
+      toast({
+        title: "Preferences Updated",
+        description: "Your email notification settings have been saved.",
+      });
+      setShowEmailPrefsDialog(false);
+    } catch (error) {
+      console.error("Email preferences update error:", error);
+      toast({
+        title: "Update Failed",
+        description: "Could not save email preferences.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingEmailPrefs(false);
+    }
+  };
+
+  // Handler for toggling email preferences
+  const handleEmailPrefChange = (prefKey: keyof typeof currentEmailPrefs, checked: boolean) => {
+    setCurrentEmailPrefs(prev => ({ ...prev, [prefKey]: checked }));
   };
 
   return (
@@ -274,7 +326,7 @@ const ProfileSettings = ({ user }: ProfileSettingsProps) => {
                 <h4 className="font-medium">Email Notifications</h4>
                 <p className="text-sm text-gray-500">Receive updates about your account and subscriptions</p>
               </div>
-              <Button variant="outline">Manage</Button>
+              <Button variant="outline" onClick={() => setShowEmailPrefsDialog(true)}>Manage</Button>
             </div>
             
             <div className="flex items-center justify-between">
@@ -282,7 +334,7 @@ const ProfileSettings = ({ user }: ProfileSettingsProps) => {
                 <h4 className="font-medium">Data and Privacy</h4>
                 <p className="text-sm text-gray-500">Manage your data and privacy settings</p>
               </div>
-              <Button variant="outline">Manage</Button>
+              <Button variant="outline" onClick={() => setShowDataPrivacyDialog(true)}>Manage</Button>
             </div>
             
             <div className="flex items-center justify-between">
@@ -356,6 +408,102 @@ const ProfileSettings = ({ user }: ProfileSettingsProps) => {
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Email Preferences Dialog */}
+      <Dialog open={showEmailPrefsDialog} onOpenChange={setShowEmailPrefsDialog}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle>Email Notification Preferences</DialogTitle>
+            <DialogDescription>
+              Choose which emails you want to receive from Cloud Canvas.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="flex items-center justify-between space-x-2">
+              <Label htmlFor="newsletter-pref" className="flex flex-col space-y-1">
+                <span>Newsletter</span>
+                <span className="font-normal leading-snug text-muted-foreground">
+                  Occasional updates about Cloud Canvas features and news.
+                </span>
+              </Label>
+              <Switch
+                id="newsletter-pref"
+                checked={currentEmailPrefs.newsletter}
+                onCheckedChange={(checked) => handleEmailPrefChange('newsletter', checked)}
+                aria-readonly={isSavingEmailPrefs}
+                disabled={isSavingEmailPrefs}
+              />
+            </div>
+            <div className="flex items-center justify-between space-x-2">
+               <Label htmlFor="product-updates-pref" className="flex flex-col space-y-1">
+                <span>Product Updates</span>
+                <span className="font-normal leading-snug text-muted-foreground">
+                  Notifications about new features, improvements, and releases.
+                </span>
+              </Label>
+              <Switch
+                id="product-updates-pref"
+                checked={currentEmailPrefs.productUpdates}
+                onCheckedChange={(checked) => handleEmailPrefChange('productUpdates', checked)}
+                 aria-readonly={isSavingEmailPrefs}
+                disabled={isSavingEmailPrefs}
+             />
+            </div>
+             <div className="flex items-center justify-between space-x-2">
+               <Label htmlFor="promotions-pref" className="flex flex-col space-y-1">
+                <span>Promotions & Offers</span>
+                <span className="font-normal leading-snug text-muted-foreground">
+                  Receive special offers, discounts, and promotional emails.
+                </span>
+              </Label>
+              <Switch
+                id="promotions-pref"
+                checked={currentEmailPrefs.promotions}
+                onCheckedChange={(checked) => handleEmailPrefChange('promotions', checked)}
+                 aria-readonly={isSavingEmailPrefs}
+                disabled={isSavingEmailPrefs}
+             />
+            </div>
+          </div>
+          <DialogFooter className="mt-4">
+            <DialogClose asChild>
+              <Button type="button" variant="outline" disabled={isSavingEmailPrefs}>Cancel</Button>
+            </DialogClose>
+            <Button type="button" onClick={onEmailPrefsSubmit} disabled={isSavingEmailPrefs}>
+              {isSavingEmailPrefs ? "Saving..." : "Save Preferences"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Data and Privacy Dialog */}
+      <Dialog open={showDataPrivacyDialog} onOpenChange={setShowDataPrivacyDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Data and Privacy</DialogTitle>
+            <DialogDescription>
+              Review your data settings and privacy options.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+             <p className="text-sm text-muted-foreground">
+              You can review our full data usage policy in our{" "}
+              <Link href="/privacy-policy" target="_blank" rel="noopener noreferrer">
+                <a className="underline text-primary hover:text-primary/80">Privacy Policy</a>
+              </Link>.
+            </p>
+             <div>
+                <Button variant="outline" disabled>Download My Data</Button>
+                <p className="text-xs text-muted-foreground mt-1">Feature coming soon.</p>
+            </div>
+          </div>
+          <DialogFooter className="mt-4">
+            <DialogClose asChild>
+              <Button type="button">Close</Button>
+            </DialogClose>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
