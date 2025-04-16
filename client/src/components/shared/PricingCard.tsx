@@ -40,10 +40,9 @@ const PricingCard = ({ plan, isAnnual }: PricingCardProps) => {
         </div>
       )}
       
-      <div className="p-6">
+      <div className="p-6 flex flex-col h-full">
         <h3 className="text-xl font-bold text-primary mb-2">{plan.name}</h3>
         <p className="text-gray-600 mb-6">{plan.description}</p>
-        
         <div className="mb-6">
           <span className="text-4xl font-bold">{plan.id === "trial" ? "Free" : `$${price}`}</span>
           {plan.id !== "trial" && <span className="text-gray-600">/month</span>}
@@ -53,7 +52,6 @@ const PricingCard = ({ plan, isAnnual }: PricingCardProps) => {
             </p>
           )}
         </div>
-        
         <ul className="space-y-3 mb-8">
           {plan.features.map((feature, index) => (
             <li key={index} className="flex items-center">
@@ -62,22 +60,21 @@ const PricingCard = ({ plan, isAnnual }: PricingCardProps) => {
             </li>
           ))}
         </ul>
-      </div>
-      
-      <div className="px-6 pb-6">
-        <Link href={buttonHref}>
-          <Button
-            className={cn(
-              "w-full",
-              plan.isPopular
-                ? "bg-accent text-white hover:bg-opacity-90"
-                : "border-2 border-primary text-primary hover:bg-primary hover:text-white"
-            )}
-            variant={plan.isPopular ? "default" : "outline"}
-          >
-            {buttonText}
-          </Button>
-        </Link>
+        <div className="mt-auto">
+          <Link href={buttonHref}>
+            <Button
+              className={cn(
+                "w-full",
+                plan.isPopular
+                  ? "bg-accent text-white hover:bg-opacity-90"
+                  : "border-2 border-primary text-primary hover:bg-primary hover:text-white"
+              )}
+              variant={plan.isPopular ? "default" : "outline"}
+            >
+              {buttonText}
+            </Button>
+          </Link>
+        </div>
       </div>
     </div>
   );

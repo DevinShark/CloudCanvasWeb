@@ -30,7 +30,19 @@ const SubscriptionCheckout = ({ plan }: SubscriptionCheckoutProps) => {
         <CardHeader>
           <CardTitle className="text-2xl">Subscribe to {plan.name}</CardTitle>
           <CardDescription>
-            Choose your preferred billing cycle
+            {plan.name === 'Standard' && (
+              <>
+                For individuals who need full access on a monthly or annual basis.
+              </>
+            )}
+            {plan.name === 'Enterprise' && (
+              <>
+                For teams and organizations needing multiple licenses and priority support.
+              </>
+            )}
+            {plan.name !== 'Standard' && plan.name !== 'Enterprise' && (
+              <>Choose your preferred billing cycle</>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
