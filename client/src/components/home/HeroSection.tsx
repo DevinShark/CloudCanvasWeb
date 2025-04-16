@@ -62,9 +62,6 @@ const HeroSection = () => {
                 <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
               ))}
             </div>
-            <span className="text-white opacity-90">
-              Trusted by over 1,000 professionals worldwide
-            </span>
           </div>
           
           <div className="mt-8">

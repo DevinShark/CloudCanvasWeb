@@ -8,6 +8,13 @@
       "when": 1744128653263,
       "tag": "0000_furry_doctor_octopus",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1744700865560,
+      "tag": "0001_stiff_molecule_man",
+      "breakpoints": true
     }
   ]
 }

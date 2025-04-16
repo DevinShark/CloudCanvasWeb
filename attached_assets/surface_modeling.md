@@ -107,12 +107,11 @@ permalink: /cloud_canvas_features/surface_modeling/
       <div class="split-content reverse">
         <div class="split-text">
           <h2>Adaptive Decimation</h2>
-          <p>Optimize your 3D models while maintaining critical surface details with Cloud Canvas's mesh decimation technology. Our algorithm intelligently reduces triangle count using industry-standard Open3D libraries for high-quality results that balance performance and visual fidelity.</p>
+          <p>Optimize your 3D models while maintaining critical surface details with Cloud Canvas's mesh decimation technology. Our algorithm intelligently reduces triangle count using industry-standard libraries for high-quality results that balance performance and visual fidelity.</p>
           <ul class="feature-list">
             <li><strong>Percentage-based reduction</strong> with user-defined target values</li>
             <li><strong>Color preservation</strong> during the decimation process to maintain visual appearance</li>
             <li><strong>Smart triangle removal</strong> that prioritizes flat areas while preserving detailed regions</li>
-            <li><strong>Interactive preview</strong> before committing changes to your mesh</li>
           </ul>
         </div>
         <div class="feature-image-placeholder">
@@ -197,7 +196,7 @@ permalink: /cloud_canvas_features/surface_modeling/
         </div>
         <div class="tech-spec">
           <div class="tech-spec-label">Supported Mesh Formats</div>
-          <div class="tech-spec-value">OBJ, STL, PLY, VTK</div>
+          <div class="tech-spec-value">OBJ, LandXML, DXF, STL, GEM</div>
         </div>
         <div class="tech-spec">
           <div class="tech-spec-label">Mesh Size Capability</div>

@@ -49,7 +49,7 @@ const PrivacyPolicy: React.FC = () => (
     <p className="mb-4 text-gray-700">
       If you have any questions or concerns about your privacy, please contact us at:
       <br />
-      <a href="mailto:cloudcanvasdms@gmail.com" className="text-primary underline">cloudcanvasdms@gmail.com</a>
+      <a href="mailto:dms@live.co.za" className="text-primary underline">dms@live.co.za</a>
     </p>
 
     <p className="text-xs text-gray-500 mt-8">

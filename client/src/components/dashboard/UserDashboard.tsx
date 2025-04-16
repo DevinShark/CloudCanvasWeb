@@ -233,6 +233,32 @@ const UserDashboard = () => {
     }
   }, [licenses]);
   
+  // Helper: Get the most relevant license (active paid > active trial > expired paid > expired trial)
+  const getCurrentLicense = (licenses) => {
+    if (!licenses || licenses.length === 0) return null;
+    // Prefer active, non-trial licenses
+    const activePaid = licenses.find(l => l.isActive && l.plan !== 'trial');
+    if (activePaid) return activePaid;
+    // Fallback: active trial
+    const activeTrial = licenses.find(l => l.isActive && l.plan === 'trial');
+    if (activeTrial) return activeTrial;
+    // Fallback: most recent expired paid
+    const expiredPaid = licenses.filter(l => !l.isActive && l.plan !== 'trial');
+    if (expiredPaid.length > 0) return expiredPaid[0];
+    // Fallback: most recent expired trial
+    const expiredTrial = licenses.filter(l => !l.isActive && l.plan === 'trial');
+    if (expiredTrial.length > 0) return expiredTrial[0];
+    return licenses[0];
+  };
+
+  const currentLicense = getCurrentLicense(licenses);
+  const isTrial = currentLicense?.plan === 'trial';
+  const isActive = currentLicense?.isActive;
+  const planName = currentLicense ? (currentLicense.plan.charAt(0).toUpperCase() + currentLicense.plan.slice(1)) : '—';
+  const billingType = isTrial ? '—' : (currentLicense?.billingType === 'annual' ? 'Annual' : 'Monthly');
+  const nextBillingDate = isTrial ? '—' : (currentLicense?.expiryDate ? formatDate(new Date(currentLicense.expiryDate)) : '—');
+  const status = isActive ? 'Active' : 'Expired';
+  
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
@@ -364,43 +390,29 @@ const UserDashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {subscription ? (
+              {currentLicense ? (
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <h3 className="text-sm font-medium text-gray-500">Plan</h3>
-                      <p className="text-lg font-semibold mt-1">
-                        {formatPlanName(subscription.plan)}
-                      </p>
+                      <p className="text-lg font-semibold mt-1">{planName}</p>
                     </div>
-                    
                     <div>
                       <h3 className="text-sm font-medium text-gray-500">Status</h3>
                       <div className="flex items-center mt-1">
-                        <div className={`h-2.5 w-2.5 rounded-full mr-2 ${
-                          subscription.status === "active" ? "bg-green-500" : "bg-gray-400"
-                        }`}></div>
-                        <p className="text-lg font-semibold">
-                          {capitalizeFirstLetter(subscription.status)}
-                        </p>
+                        <div className={`h-2.5 w-2.5 rounded-full mr-2 ${isActive ? "bg-green-500" : "bg-gray-400"}`}></div>
+                        <p className="text-lg font-semibold">{status}</p>
                       </div>
                     </div>
-                    
                     <div>
                       <h3 className="text-sm font-medium text-gray-500">Billing Cycle</h3>
-                      <p className="text-lg font-semibold mt-1">
-                        {subscription.billingType === "annual" ? "Annual" : "Monthly"}
-                      </p>
+                      <p className="text-lg font-semibold mt-1">{billingType}</p>
                     </div>
-                    
                     <div>
                       <h3 className="text-sm font-medium text-gray-500">Next Billing Date</h3>
-                      <p className="text-lg font-semibold mt-1">
-                        {formatDate(new Date(subscription.endDate))}
-                      </p>
+                      <p className="text-lg font-semibold mt-1">{nextBillingDate}</p>
                     </div>
                   </div>
-                  
                   <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t">
                     <Button variant="outline" onClick={() => window.location.href = "/#pricing"}>
                       Change Plan
@@ -425,7 +437,6 @@ const UserDashboard = () => {
               )}
             </CardContent>
           </Card>
-          
           <Card>
             <CardHeader>
               <CardTitle>Billing History</CardTitle>
@@ -434,46 +445,8 @@ const UserDashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {subscription ? (
-                <div className="border rounded-lg overflow-hidden">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      <tr>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {formatDate(new Date(subscription.startDate))}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {formatPlanName(subscription.plan)} Plan - {subscription.billingType === "annual" ? "Annual" : "Monthly"}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          ${subscription.billingType === "annual" ? 
-                            subscription.plan === "standard" ? "708.00" : 
-                            subscription.plan === "professional" ? "1,188.00" : "2,988.00"
-                            : 
-                            subscription.plan === "standard" ? "59.00" : 
-                            subscription.plan === "professional" ? "99.00" : "249.00"
-                          }
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                            Paid
-                          </span>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="text-gray-500 text-center py-4">No billing history available</p>
-              )}
+              {/* If LicenseGate provides billing/invoice data, map and display it here. Otherwise, show a message. */}
+              <p className="text-gray-500 text-center py-4">No billing history available</p>
             </CardContent>
           </Card>
         </TabsContent>

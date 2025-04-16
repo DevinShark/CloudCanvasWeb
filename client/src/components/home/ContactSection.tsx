@@ -177,18 +177,7 @@ const ContactSection = () => {
                   </div>
                   <div className="ml-4">
                     <h4 className="font-medium">Our Office</h4>
-                    <p className="text-gray-600">123 Tech Park Drive<br />San Francisco, CA 94107</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start">
-                  <div className="flex-shrink-0 mt-1">
-                    <Phone className="h-5 w-5 text-accent" />
-                  </div>
-                  <div className="ml-4">
-                    <h4 className="font-medium">Phone</h4>
-                    <p className="text-gray-600">+1 (555) 123-4567</p>
-                    <p className="text-gray-500 text-sm">Mon-Fri, 9am-5pm PT</p>
+                    <p className="text-gray-600">Alberton<br />Gauteng<br />South Africa</p>
                   </div>
                 </div>
                 
@@ -198,26 +187,8 @@ const ContactSection = () => {
                   </div>
                   <div className="ml-4">
                     <h4 className="font-medium">Email</h4>
-                    <p className="text-gray-600">info@cloudcanvas.com</p>
+                    <p className="text-gray-600">dms@live.co.za</p>
                     <p className="text-gray-500 text-sm">We respond within 24 hours</p>
-                  </div>
-                </div>
-                
-                <div className="pt-6">
-                  <h4 className="font-medium mb-4">Follow Us</h4>
-                  <div className="flex space-x-4">
-                    <a href="#" className="text-accent hover:text-primary transition-colors duration-200" aria-label="Twitter">
-                      <Twitter className="h-6 w-6" />
-                    </a>
-                    <a href="#" className="text-accent hover:text-primary transition-colors duration-200" aria-label="LinkedIn">
-                      <Linkedin className="h-6 w-6" />
-                    </a>
-                    <a href="#" className="text-accent hover:text-primary transition-colors duration-200" aria-label="YouTube">
-                      <Youtube className="h-6 w-6" />
-                    </a>
-                    <a href="#" className="text-accent hover:text-primary transition-colors duration-200" aria-label="Facebook">
-                      <Facebook className="h-6 w-6" />
-                    </a>
                   </div>
                 </div>
               </div>
