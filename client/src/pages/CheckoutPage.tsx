@@ -25,14 +25,14 @@ const CheckoutPage = () => {
     {
       id: "standard",
       name: "Standard",
-      description: "Perfect for individual professionals",
-      monthlyPrice: 59,
-      annualPrice: 708, // $59 * 12
+      description: "For individuals who need full access on a monthly or annual basis.",
+      monthlyPrice: 60,
+      annualPrice: 720, // $60 * 12
       features: [
         "Single user license",
-        "Core processing tools",
-        "5GB cloud storage",
-        "Email support"
+        "Full access to all features",
+        "Email support",
+        "Monthly recurring subscription"
       ]
     },
     {
@@ -53,15 +53,14 @@ const CheckoutPage = () => {
     {
       id: "enterprise",
       name: "Enterprise",
-      description: "For teams and organizations",
-      monthlyPrice: 249,
-      annualPrice: 2988, // $249 * 12
+      description: "For teams and organizations needing multiple licenses and priority support.",
+      monthlyPrice: 240,
+      annualPrice: 2880, // $240 * 12
       features: [
-        "5 user licenses",
-        "All processing tools + API access",
-        "100GB cloud storage",
-        "24/7 dedicated support",
-        "Custom integration support"
+        "5 user licenses (bulk discount)",
+        "Full access to all features",
+        "Priority email support",
+        "Suggest tool implementation requests for future releases"
       ]
     }
   ];
