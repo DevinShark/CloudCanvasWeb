@@ -22,7 +22,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 
-// Add TypeScript interface for window with Turnstile
+// Define turnstile interface for window
 interface TurnstileWindow extends Window {
   turnstile?: {
     render: (container: HTMLElement, options: any) => string;
@@ -30,7 +30,8 @@ interface TurnstileWindow extends Window {
   };
 }
 
-declare const window: TurnstileWindow;
+// Safe type assertion for window
+const safeWindow = window as TurnstileWindow;
 
 // Custom Turnstile component that uses the Cloudflare Turnstile script directly
 interface TurnstileProps {
@@ -43,59 +44,103 @@ interface TurnstileProps {
 const Turnstile: React.FC<TurnstileProps> = ({ siteKey, onSuccess, onError, onExpire }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
+  const [isScriptLoaded, setIsScriptLoaded] = useState(false);
 
+  // Load the script only once
   useEffect(() => {
-    // Load the Turnstile script if it's not already loaded
-    if (!window.turnstile) {
+    if (!safeWindow.turnstile && !isScriptLoaded) {
+      setIsScriptLoaded(true);
       const script = document.createElement('script');
       script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
       script.async = true;
       script.defer = true;
+      script.onload = () => {
+        console.log('Turnstile script loaded successfully');
+      };
+      script.onerror = (err) => {
+        console.error('Error loading Turnstile script:', err);
+      };
       document.head.appendChild(script);
 
       return () => {
-        document.head.removeChild(script);
+        try {
+          document.head.removeChild(script);
+        } catch (err) {
+          console.error('Error removing script:', err);
+        }
       };
     }
-
+    // Cleanup on unmount
     return () => {
-      // Clean up the widget when the component unmounts
-      if (widgetIdRef.current && window.turnstile) {
-        window.turnstile.remove(widgetIdRef.current);
+      if (widgetIdRef.current && safeWindow.turnstile) {
+        try {
+          safeWindow.turnstile.remove(widgetIdRef.current);
+        } catch (err) {
+          console.error('Error removing Turnstile widget:', err);
+        }
       }
     };
-  }, []);
+  }, [isScriptLoaded]);
 
+  // Setup the widget after the script has loaded
   useEffect(() => {
-    // Initialize the widget when the script is loaded and the container is ready
-    const interval = setInterval(() => {
-      if (window.turnstile && containerRef.current) {
-        clearInterval(interval);
+    let isMounted = true;
+    let intervalId: number | null = null;
+
+    const initializeTurnstile = () => {
+      intervalId = window.setInterval(() => {
+        if (!isMounted) {
+          if (intervalId !== null) clearInterval(intervalId);
+          return;
+        }
         
-        // Allow time for the script to fully initialize
-        setTimeout(() => {
-          try {
-            if (widgetIdRef.current && window.turnstile) {
-              window.turnstile.remove(widgetIdRef.current);
+        if (safeWindow.turnstile && containerRef.current) {
+          if (intervalId !== null) clearInterval(intervalId);
+          
+          // Clear previous widget if exists
+          if (widgetIdRef.current) {
+            try {
+              safeWindow.turnstile.remove(widgetIdRef.current);
+              widgetIdRef.current = null;
+            } catch (err) {
+              console.error('Error removing previous widget:', err);
             }
-            
-            widgetIdRef.current = window.turnstile.render(containerRef.current, {
-              sitekey: siteKey,
-              callback: onSuccess,
-              'error-callback': onError,
-              'expired-callback': onExpire,
-              theme: 'light',
-            });
-          } catch (err) {
-            console.error('Error rendering Turnstile widget:', err);
-            if (onError) onError(err);
           }
-        }, 500);
-      }
-    }, 100);
+          
+          // Small delay to ensure DOM is ready
+          setTimeout(() => {
+            if (!isMounted) return;
+            
+            try {
+              widgetIdRef.current = safeWindow.turnstile?.render(containerRef.current!, {
+                sitekey: siteKey,
+                callback: onSuccess,
+                'error-callback': onError,
+                'expired-callback': onExpire,
+                theme: 'light',
+              });
+            } catch (err) {
+              console.error('Error rendering Turnstile widget:', err);
+              if (onError) onError(err);
+            }
+          }, 300);
+        }
+      }, 200);
+    };
+
+    initializeTurnstile();
 
     return () => {
-      clearInterval(interval);
+      isMounted = false;
+      if (intervalId !== null) clearInterval(intervalId);
+      
+      if (widgetIdRef.current && safeWindow.turnstile) {
+        try {
+          safeWindow.turnstile.remove(widgetIdRef.current);
+        } catch (err) {
+          console.error('Error cleaning up Turnstile widget:', err);
+        }
+      }
     };
   }, [siteKey, onSuccess, onError, onExpire]);
 
