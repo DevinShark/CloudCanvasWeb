@@ -21,7 +21,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['@marsidev/react-turnstile']
+    include: ['lucide-react', '@marsidev/react-turnstile']
   },
   build: {
     outDir: './dist',
@@ -29,6 +29,9 @@ export default defineConfig({
     assetsDir: 'assets',
     emptyOutDir: true,
     minify: 'terser',
+    commonjsOptions: {
+      include: [/lucide-react/, /node_modules/]
+    },
     rollupOptions: {
     },
   },
