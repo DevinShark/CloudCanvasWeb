@@ -29,7 +29,7 @@ export default defineConfig({
     sourcemap: 'inline',
     assetsDir: 'assets',
     emptyOutDir: true,
-    minify: 'terser',
+    minify: false,
     terserOptions: {
       ecma: 5,
       compress: {
