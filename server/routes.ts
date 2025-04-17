@@ -1,4 +1,4 @@
-import type { Express, Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction, Express } from "express";
 import { createServer, type Server } from "http";
 import session from "express-session";
 import passport from "passport";
@@ -7,6 +7,7 @@ import bcrypt from "bcryptjs";
 import axios from "axios";
 import { EmailService } from "./services/email";
 import { storage } from "./storage";
+import { LicenseGateService, LicenseDetails } from "./services/licenseGate";
 
 // Import controllers
 import * as authController from "./controllers/auth";
@@ -177,36 +178,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/licenses/deactivate/:id", requireAuth, licenseController.deactivateLicense);
   app.post("/api/licenses/reactivate/:id", requireAuth, licenseController.reactivateLicense);
   
-  // Fetch user licenses from local database
+  // Fetch user licenses from LicenseGate and local database
   app.get("/api/licenses/me", requireAuth, async (req, res) => {
     try {
       const user = req.user as any;
       if (!user || !user.id) {
         return res.status(401).json({ success: false, message: "User not authenticated" });
       }
-      // Get licenses from database
-      const dbLicenses = await storage.getUserLicenses(user.id);
-      // Map to API response including plan from subscription
-      const licenses = await Promise.all(dbLicenses.map(async lic => {
-        let plan = 'trial';
-        if (lic.subscriptionId) {
-          const sub = await storage.getSubscription(lic.subscriptionId);
-          plan = sub?.plan || 'standard';
-        }
-        return {
-          id: lic.id,
-          licenseKey: lic.licenseKey,
-          isActive: lic.isActive,
-          expiryDate: lic.expiryDate.toISOString(),
-          subscriptionId: lic.subscriptionId,
-          plan,
-          notes: undefined,
-          name: undefined
-        };
-      }));
+      
+      // First get licenses from LicenseGate API by user email
+      let licenses: LicenseDetails[] = [];
+      try {
+        console.log("Fetching licenses from LicenseGate for user:", user.email);
+        const lgLicenses = await LicenseGateService.getUserLicensesFromLicenseGate(user.email);
+        console.log("Licenses from LicenseGate:", lgLicenses.length);
+        licenses = lgLicenses;
+      } catch (lgError) {
+        console.error("Error fetching from LicenseGate:", lgError);
+        // Continue with database licenses if LicenseGate fails
+      }
+      
+      // If no licenses found in LicenseGate (or error occurred), use database as fallback
+      if (licenses.length === 0) {
+        console.log("No licenses found in LicenseGate or error occurred, using database as fallback");
+        // Get licenses from database
+        const dbLicenses = await storage.getUserLicenses(user.id);
+        console.log("Licenses from database:", dbLicenses.length);
+        
+        // Map to API response including plan from subscription
+        licenses = await Promise.all(dbLicenses.map(async lic => {
+          let plan = 'trial';
+          if (lic.subscriptionId) {
+            const sub = await storage.getSubscription(lic.subscriptionId);
+            plan = sub?.plan || 'standard';
+          }
+          return {
+            id: lic.id,
+            licenseKey: lic.licenseKey,
+            isActive: lic.isActive,
+            expiryDate: lic.expiryDate.toISOString(),
+            subscriptionId: lic.subscriptionId,
+            plan,
+            notes: undefined,
+            name: undefined
+          };
+        }));
+      }
+      
+      console.log("Total licenses being returned:", licenses.length);
       res.status(200).json({ success: true, licenses });
     } catch (error) {
-      console.error("Error fetching licenses from database:", error);
+      console.error("Error fetching licenses:", error);
       res.status(500).json({ success: false, message: "Failed to fetch licenses" });
     }
   });
