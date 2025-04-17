@@ -1,7 +1,6 @@
 import { apiRequest } from "@/lib/queryClient";
 import { InsertUser, LoginData, User } from "@shared/schema";
 import { toast } from "@/hooks/use-toast";
-import axios from 'axios';
 import { LicenseDetails } from "@/types";
 import { getApiUrl } from "@/config";
 
@@ -145,49 +144,20 @@ export async function updateUserProfile(userData: Partial<InsertUser>): Promise<
 // --- NEW FUNCTION --- 
 export const fetchUserLicenses = async (): Promise<LicenseDetails[]> => {
   try {
-    console.log("Fetching user licenses from:", getApiUrl("/api/licenses/me"));
-    
-    const response = await axios.get<{ success: boolean; licenses: LicenseDetails[] }>(
-      getApiUrl("/api/licenses/me"),
-      {
-        // Ensure credentials are included and content type is set
-        withCredentials: true,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        }
-      }
-    );
-    
-    console.log("License API response:", {
-      status: response.status,
-      statusText: response.statusText,
-      headers: response.headers,
-      data: response.data
-    });
-    
-    if (response.data.success) {
-      // Ensure each license has a plan property
-      const licenses = response.data.licenses.map(license => ({
+    const response = await apiRequest("GET", "/api/licenses/me");
+    const data = await response.json();
+    if (data.success) {
+      const licenses: LicenseDetails[] = data.licenses.map((license: LicenseDetails) => ({
         ...license,
-        plan: license.plan || 'trial' // Default to 'trial' if no plan is set
+        plan: license.plan || 'trial',
       }));
-      
-      console.log("Processed licenses:", licenses);
       return licenses;
     } else {
-      console.error("Backend indicated failure fetching licenses", response.data);
+      console.error("Backend indicated failure fetching licenses", data);
       return [];
     }
-  } catch (error: any) {
-    console.error("Error fetching user licenses:", error.response ? {
-      status: error.response.status,
-      statusText: error.response.statusText,
-      data: error.response.data,
-      headers: error.response.headers
-    } : error.message || error);
-    
-    // Return empty array instead of throwing to prevent query retries
+  } catch (error) {
+    console.error("Error fetching user licenses:", error);
     return [];
   }
 };
@@ -203,17 +173,7 @@ export const updateEmailPreferences = async (prefs: {
     const apiUrl = getApiUrl("/api/auth/preferences");
     console.log("Updating email preferences to:", apiUrl, prefs);
     
-    const response = await axios.patch<{ success: boolean; message?: string }>(
-      apiUrl,
-      prefs,
-      {
-        withCredentials: true, // Ensure cookies are sent
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        }
-      }
-    );
+    const response = await apiRequest("PATCH", "/api/auth/preferences", prefs);
 
     console.log("Update Email Prefs response:", response.data);
 

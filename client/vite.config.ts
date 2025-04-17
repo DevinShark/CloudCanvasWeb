@@ -28,14 +28,8 @@ export default defineConfig({
     sourcemap: 'inline',
     assetsDir: 'assets',
     emptyOutDir: true,
-    minify: 'esbuild',
+    minify: 'terser',
     rollupOptions: {
-      output: {
-        sourcemap: 'inline',
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'wouter', '@marsidev/react-turnstile'],
-        },
-      }
     },
   },
   server: {
