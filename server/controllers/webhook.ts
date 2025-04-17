@@ -5,17 +5,20 @@ import { LicenseGateService } from "../services/licenseGate";
 import { EmailService } from "../services/email";
 import { getSubscriptionEndDate } from "../lib/utils";
 
-// PayPal webhook secret
-const WEBHOOK_SECRET = process.env.PAYPAL_WEBHOOK_SECRET || "";
+// PayPal webhook ID
+const WEBHOOK_ID = process.env.PAYPAL_WEBHOOK_ID || "";
 
 // Verify PayPal webhook signature
 function verifyWebhookSignature(requestBody: string, headers: any): boolean {
-  if (!WEBHOOK_SECRET) {
-    console.warn("PayPal webhook secret not configured, skipping signature verification");
+  if (!WEBHOOK_ID) {
+    console.warn("PayPal webhook ID not configured, skipping signature verification");
     return true; // Skip verification in development
   }
 
   try {
+    // Log headers for debugging
+    console.log("PayPal Headers:", JSON.stringify(headers, null, 2));
+    
     // Extract PayPal headers
     const transmissionId = headers["paypal-transmission-id"];
     const transmissionTime = headers["paypal-transmission-time"];
@@ -25,15 +28,17 @@ function verifyWebhookSignature(requestBody: string, headers: any): boolean {
     
     if (!transmissionId || !transmissionTime || !transmissionSig || !certUrl || !authAlgo) {
       console.error("Missing required PayPal headers for webhook verification");
+      console.error("Required headers: paypal-transmission-id, paypal-transmission-time, paypal-transmission-sig, paypal-cert-url, paypal-auth-algo");
+      console.error("Received headers:", Object.keys(headers).join(", "));
       return false;
     }
     
     // Create the validation string according to PayPal's documentation
     // https://developer.paypal.com/api/rest/webhooks/payment-webhooks/
-    const validationStr = transmissionId + "|" + transmissionTime + "|" + WEBHOOK_SECRET + "|" + requestBody;
+    const validationStr = transmissionId + "|" + transmissionTime + "|" + WEBHOOK_ID + "|" + requestBody;
     
     // Create the hash
-    const hmac = crypto.createHmac("sha256", WEBHOOK_SECRET);
+    const hmac = crypto.createHmac("sha256", WEBHOOK_ID);
     hmac.update(validationStr);
     const expectedSignature = hmac.digest("base64");
     
@@ -57,8 +62,19 @@ function verifyWebhookSignature(requestBody: string, headers: any): boolean {
 export const handlePayPalWebhook = async (req: Request, res: Response) => {
   try {
     // Log receipt of webhook
-    console.log("Received PayPal webhook:", req.body.event_type);
-    console.log("Headers:", req.headers);
+    console.log("Received PayPal webhook:", req.body?.event_type || "Unknown event type");
+    console.log("Headers:", Object.keys(req.headers).join(", "));
+    
+    // Allow webhooks without authentication in development
+    if (process.env.NODE_ENV !== 'production') {
+      console.log("Development mode: Processing webhook without signature verification");
+      // Process the event
+      await processWebhookEvent(req.body);
+      return res.status(200).json({
+        success: true,
+        message: "Webhook received (dev mode)"
+      });
+    }
     
     // Get the raw request body for signature verification
     const rawBody = JSON.stringify(req.body);
@@ -66,59 +82,21 @@ export const handlePayPalWebhook = async (req: Request, res: Response) => {
     // Verify webhook signature
     const isVerified = verifyWebhookSignature(rawBody, req.headers);
     
-    if (!isVerified && process.env.NODE_ENV === 'production') {
+    if (!isVerified) {
       console.error("Invalid webhook signature");
-      return res.status(403).json({
+      return res.status(401).json({
         success: false,
         message: "Invalid webhook signature"
       });
     }
     
-    // Process the event even if signature fails in development mode
-    if (!isVerified) {
-      console.warn("Webhook signature verification failed, but processing anyway in development mode");
-    }
-    
-    const event = req.body;
-    const eventType = event.event_type;
-    
-    console.log("Processing PayPal webhook event:", eventType);
-    
-    switch (eventType) {
-      case "BILLING.SUBSCRIPTION.CREATED":
-        // New subscription created - already handled in executeSubscription
-        break;
-        
-      case "PAYMENT.SALE.COMPLETED":
-        // Payment processed successfully
-        await handlePaymentCompleted(event);
-        break;
-        
-      case "BILLING.SUBSCRIPTION.PAYMENT.FAILED":
-        // Payment failed
-        await handlePaymentFailed(event);
-        break;
-        
-      case "BILLING.SUBSCRIPTION.CANCELLED":
-        // Subscription cancelled
-        await handleSubscriptionCancelled(event);
-        break;
-        
-      case "BILLING.SUBSCRIPTION.EXPIRED":
-        // Subscription expired
-        await handleSubscriptionExpired(event);
-        break;
-        
-      case "BILLING.SUBSCRIPTION.UPDATED":
-        // Subscription updated
-        await handleSubscriptionUpdated(event);
-        break;
-    }
+    // Process the event
+    await processWebhookEvent(req.body);
     
     // Return 200 to acknowledge receipt of the event
     res.status(200).json({
       success: true,
-      message: "Webhook received"
+      message: "Webhook received and processed"
     });
   } catch (error) {
     console.error("PayPal webhook error:", error);
@@ -128,6 +106,48 @@ export const handlePayPalWebhook = async (req: Request, res: Response) => {
     });
   }
 };
+
+// Process webhook event
+async function processWebhookEvent(event: any) {
+  const eventType = event?.event_type;
+  
+  console.log("Processing PayPal webhook event:", eventType);
+  
+  switch (eventType) {
+    case "BILLING.SUBSCRIPTION.CREATED":
+      // New subscription created - already handled in executeSubscription
+      break;
+      
+    case "PAYMENT.SALE.COMPLETED":
+      // Payment processed successfully
+      await handlePaymentCompleted(event);
+      break;
+      
+    case "BILLING.SUBSCRIPTION.PAYMENT.FAILED":
+      // Payment failed
+      await handlePaymentFailed(event);
+      break;
+      
+    case "BILLING.SUBSCRIPTION.CANCELLED":
+      // Subscription cancelled
+      await handleSubscriptionCancelled(event);
+      break;
+      
+    case "BILLING.SUBSCRIPTION.EXPIRED":
+      // Subscription expired
+      await handleSubscriptionExpired(event);
+      break;
+      
+    case "BILLING.SUBSCRIPTION.UPDATED":
+      // Subscription updated
+      await handleSubscriptionUpdated(event);
+      break;
+      
+    default:
+      console.log("Unhandled webhook event type:", eventType);
+      break;
+  }
+}
 
 // Handle payment completed event
 async function handlePaymentCompleted(event: any) {

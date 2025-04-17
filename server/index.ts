@@ -16,6 +16,34 @@ const isReplitEnvironment = !!process.env.REPLIT_SLUG;
 const isProduction = process.env.NODE_ENV === 'production';
 
 const app = express();
+
+// Add raw body parser for PayPal webhook endpoints
+const rawBodyParser = express.raw({ type: 'application/json' });
+
+// PayPal webhook middleware to handle both raw JSON and parse it
+app.use((req, res, next) => {
+  // Only use raw body parser for PayPal webhook paths
+  if (req.path === '/api/paypal/webhook') {
+    console.log('[Server] Processing PayPal webhook with raw body parser');
+    return rawBodyParser(req, res, (err) => {
+      if (err) return next(err);
+      
+      // Parse the raw body if it exists
+      if (req.body && req.body.length > 0) {
+        try {
+          req.body = JSON.parse(req.body.toString());
+        } catch (e) {
+          console.error('[Server] Error parsing webhook JSON:', e);
+        }
+      }
+      
+      next();
+    });
+  }
+  next();
+});
+
+// Standard body parsers for regular requests
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 

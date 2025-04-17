@@ -251,12 +251,49 @@ const UserDashboard = () => {
     return licenses[0];
   };
 
+  // Get subscription info for the current license
+  const [currentSubscription, setCurrentSubscription] = useState(null);
+  
+  useEffect(() => {
+    const fetchSubscriptionDetails = async () => {
+      if (currentLicense?.subscriptionId) {
+        try {
+          const response = await fetch(`/api/subscriptions/${currentLicense.subscriptionId}`, {
+            credentials: 'include'
+          });
+          const data = await response.json();
+          
+          if (data.success && data.subscription) {
+            setCurrentSubscription(data.subscription);
+          }
+        } catch (error) {
+          console.error("Error fetching subscription details:", error);
+        }
+      }
+    };
+    
+    if (currentLicense) {
+      fetchSubscriptionDetails();
+    }
+  }, [currentLicense]);
+
   const currentLicense = getCurrentLicense(licenses);
   const isTrial = currentLicense?.plan === 'trial';
   const isActive = currentLicense?.isActive;
   const planName = currentLicense ? (currentLicense.plan.charAt(0).toUpperCase() + currentLicense.plan.slice(1)) : '—';
-  const billingType = isTrial ? '—' : (currentLicense?.billingType === 'annual' ? 'Annual' : 'Monthly');
-  const nextBillingDate = isTrial ? '—' : (currentLicense?.expiryDate ? formatDate(new Date(currentLicense.expiryDate)) : '—');
+  
+  // Use subscription info for billing details if available, otherwise fallback to license
+  const billingType = isTrial ? '—' : (
+    currentSubscription?.billingType === 'annual' ? 'Annual' : 
+    currentSubscription?.billingType === 'monthly' ? 'Monthly' : '—'
+  );
+  
+  // Use subscription end date as next billing date
+  const nextBillingDate = isTrial ? '—' : (
+    currentSubscription?.endDate ? formatDate(new Date(currentSubscription.endDate)) : 
+    currentLicense?.expiryDate ? formatDate(new Date(currentLicense.expiryDate)) : '—'
+  );
+  
   const status = isActive ? 'Active' : 'Expired';
   
   if (isLoading) {

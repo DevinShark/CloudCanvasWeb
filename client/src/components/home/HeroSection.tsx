@@ -56,14 +56,6 @@ const HeroSection = () => {
             </Link>
           </div>
           
-          <div className="mt-8 flex items-center space-x-2">
-            <div className="flex">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
-              ))}
-            </div>
-          </div>
-          
           <div className="mt-8">
             <div className="flex items-center">
               <div className="inline-flex px-3 py-1 rounded-full bg-secondary bg-opacity-30">

@@ -177,72 +177,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/licenses/deactivate/:id", requireAuth, licenseController.deactivateLicense);
   app.post("/api/licenses/reactivate/:id", requireAuth, licenseController.reactivateLicense);
   
-  // Add the new endpoint to fetch licenses directly from LicenseGate - SPECIFIC ROUTES FIRST
-  app.get("/api/licenses/me", requireAuth, async (req, res, next) => {
+  // Fetch user licenses from local database
+  app.get("/api/licenses/me", requireAuth, async (req, res) => {
     try {
-      // Ensure user information is attached by requireAuth middleware
       const user = req.user as any;
-      if (!user || !user.email) {
-        return res.status(401).json({ success: false, message: "User not authenticated or email missing." });
+      if (!user || !user.id) {
+        return res.status(401).json({ success: false, message: "User not authenticated" });
       }
-
-      // Log the request
-      console.log("Fetching licenses for user:", user.email);
-            
-      // Get API credentials directly from environment
-      const API_KEY = process.env.LICENSEGATE_API_KEY;
-      const API_URL = (process.env.LICENSEGATE_API_URL || "https://api.licensegate.io").replace(/\/+$/, '');
-      
-      if (!API_KEY) {
-        console.error("LICENSEGATE_API_KEY is not set in environment variables");
-        throw new Error("LicenseGate API credentials are not configured");
-      }
-      
-      // Make direct axios request to fetch ALL licenses
-      const response = await axios.get(
-        `${API_URL}/admin/licenses`, // Fetch all licenses
-        {
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": API_KEY,
-            "Accept": "application/json"
-          },
-          timeout: 10000
+      // Get licenses from database
+      const dbLicenses = await storage.getUserLicenses(user.id);
+      // Map to API response including plan from subscription
+      const licenses = await Promise.all(dbLicenses.map(async lic => {
+        let plan = 'trial';
+        if (lic.subscriptionId) {
+          const sub = await storage.getSubscription(lic.subscriptionId);
+          plan = sub?.plan || 'standard';
         }
-      );
-      
-      console.log("LicenseGate API direct call response status:", response.status);
-      
-      if (response.status === 200 && response.data && Array.isArray(response.data.licenses)) {
-        // Filter licenses by email in the notes field and map the data
-        const filteredLicenses = response.data.licenses
-          .filter((license: any) => license.notes && license.notes.includes(user.email))
-          .map((license: any) => ({
-            id: license.id,
-            licenseKey: license.licenseKey,
-            isActive: license.active,
-            // Ensure expiryDate is a string, default if null/undefined
-            expiryDate: license.expirationDate 
-              ? String(license.expirationDate) 
-              : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-            subscriptionId: license.subscriptionId || null, // Use subscriptionId if available
-            plan: license.plan || 'trial', // Use plan if available, default to 'trial'
-            notes: license.notes, // Include notes
-            name: license.name // Include name if available
-          }));
-        
-        console.log(`Found ${filteredLicenses.length} licenses for user ${user.email} after filtering`);
-        res.status(200).json({ success: true, licenses: filteredLicenses });
-      } else {
-        console.error("Invalid response from LicenseGate API:", response.data);
-        res.status(200).json({ success: true, licenses: [] });
-      }
+        return {
+          id: lic.id,
+          licenseKey: lic.licenseKey,
+          isActive: lic.isActive,
+          expiryDate: lic.expiryDate.toISOString(),
+          subscriptionId: lic.subscriptionId,
+          plan,
+          notes: undefined,
+          name: undefined
+        };
+      }));
+      res.status(200).json({ success: true, licenses });
     } catch (error) {
-      console.error("Error in /api/licenses/me handler:", error);
-      // Send a specific 500 error response
-      const message = error instanceof Error ? error.message : "An unexpected error occurred while fetching licenses.";
-      res.status(500).json({ success: false, message: message });
-      // Do not call next(error) to prevent reaching the generic handler
+      console.error("Error fetching licenses from database:", error);
+      res.status(500).json({ success: false, message: "Failed to fetch licenses" });
     }
   });
   

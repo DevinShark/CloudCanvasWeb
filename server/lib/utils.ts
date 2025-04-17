@@ -40,7 +40,7 @@ export function getSubscriptionEndDate(startDate: Date, billingType: string, isT
     // Trial licenses last 30 days regardless of billing type
     endDate.setDate(endDate.getDate() + 30);
   } else if (billingType === "annual") {
-    // Annual subscriptions last 1 year
+    // Annual subscriptions last 1 year (365 days)
     endDate.setFullYear(endDate.getFullYear() + 1);
   } else { // monthly
     // Monthly subscriptions last 1 month

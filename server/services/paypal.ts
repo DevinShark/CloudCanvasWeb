@@ -241,6 +241,19 @@ export class PayPalService {
       // Calculate subscription dates
       const startDate = new Date();
       
+      // Calculate the end date based on billing type
+      const endDate = getSubscriptionEndDate(startDate, billingType, false);
+      
+      // Log the subscription details for debugging
+      console.log(`Creating subscription with details:`, {
+        userId: user.id,
+        plan,
+        billingType,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        duration: billingType === 'annual' ? '1 year' : '1 month'
+      });
+      
       // Create subscription in storage
       const subscription = await storage.createSubscription({
         userId: user.id,
@@ -249,13 +262,13 @@ export class PayPalService {
         status: "active",
         billingType,
         startDate,
-        endDate: getSubscriptionEndDate(startDate, billingType)
+        endDate
       });
       
       return subscription;
     } catch (error) {
       console.error("PayPal executeSubscription error:", error);
-      throw new Error("Failed to execute subscription");
+      throw new Error("Failed to execute PayPal subscription");
     }
   }
 }

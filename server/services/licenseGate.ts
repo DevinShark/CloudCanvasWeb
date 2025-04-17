@@ -72,6 +72,7 @@ export class LicenseGateService {
       getSubscriptionEndDate(
         new Date(subscription.startDate),
         subscription.billingType,
+        subscription.plan === "trial" // Pass true if this is a trial subscription
       );
 
     // Generate a unique license key with plan-specific prefix

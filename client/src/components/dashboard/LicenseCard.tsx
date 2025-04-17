@@ -39,8 +39,9 @@ const LicenseCard = ({ license }: LicenseCardProps) => {
     });
   };
 
-  // Determine if this is a trial license
-  const isTrial = license.subscriptionId === null || license.subscriptionId === 0 || license.plan === 'trial';
+  // Determine if this is a trial license - ONLY if it has no subscription ID AND the plan is 'trial'
+  const isTrial = (license.subscriptionId === null || license.subscriptionId === 0) && 
+                  (license.plan === 'trial' || !license.plan);
   
   // Calculate remaining days if it's a trial
   const expiryDate = new Date(license.expiryDate);
@@ -70,7 +71,7 @@ const LicenseCard = ({ license }: LicenseCardProps) => {
                 </Badge>
               )}
               
-              {/* Show appropriate badge based on license type */}
+              {/* Display the appropriate badge based on plan - Trial or actual plan name */}
               {isTrial ? (
                 <Badge variant="secondary" className="bg-blue-600 text-white">
                   Trial
