@@ -197,12 +197,13 @@ export class LicenseGateService {
       subscription,
     );
 
-    // Set the expiry date based on subscription end date
+    // Set the expiry date based on subscription end date with the correct duration
     const expiryDate =
       subscription.endDate ||
       getSubscriptionEndDate(
         new Date(subscription.startDate),
         subscription.billingType,
+        subscription.plan === "trial" // Pass true if this is a trial subscription
       );
 
     try {

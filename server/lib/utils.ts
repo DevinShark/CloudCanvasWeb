@@ -33,12 +33,17 @@ export function formatPlanName(plan: string): string {
 /**
  * Calculate the end date for a subscription based on its type (monthly/annual)
  */
-export function getSubscriptionEndDate(startDate: Date, billingType: string): Date {
+export function getSubscriptionEndDate(startDate: Date, billingType: string, isTrial: boolean = false): Date {
   const endDate = new Date(startDate);
   
-  if (billingType === "annual") {
+  if (isTrial) {
+    // Trial licenses last 30 days regardless of billing type
+    endDate.setDate(endDate.getDate() + 30);
+  } else if (billingType === "annual") {
+    // Annual subscriptions last 1 year
     endDate.setFullYear(endDate.getFullYear() + 1);
   } else { // monthly
+    // Monthly subscriptions last 1 month
     endDate.setMonth(endDate.getMonth() + 1);
   }
   

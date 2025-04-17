@@ -341,6 +341,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // PayPal webhook endpoint - doesn't require authentication
   app.post("/api/webhooks/paypal", webhookController.handlePayPalWebhook);
+  
+  // Add an additional route for the PayPal webhook (for compatibility with existing webhook settings)
+  app.post("/api/paypal/webhook", webhookController.handlePayPalWebhook);
 
   const httpServer = createServer(app);
   return httpServer;
