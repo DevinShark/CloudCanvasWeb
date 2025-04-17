@@ -66,17 +66,13 @@ export function generateToken(length: number = 32): string {
 export function getSubscriptionPrice(plan: string, billingType: string): number {
   // Price configuration
   const prices = {
-    basic: {
-      monthly: 29.99,
-      annual: 299.99
-    },
-    professional: {
-      monthly: 49.99,
-      annual: 499.99
+    standard: {
+      monthly: 75, // $75/month
+      annual: 720  // $60/month billed annually ($720/year)
     },
     enterprise: {
-      monthly: 99.99,
-      annual: 999.99
+      monthly: 300, // $300/month
+      annual: 2880  // $240/month billed annually ($2880/year)
     },
     trial: {
       monthly: 0,
@@ -84,8 +80,8 @@ export function getSubscriptionPrice(plan: string, billingType: string): number 
     }
   };
   
-  // Default to basic plan if plan not found
-  const planPrices = prices[plan as keyof typeof prices] || prices.basic;
+  // Default to standard plan if plan not found
+  const planPrices = prices[plan as keyof typeof prices] || prices.standard;
   
   // Return price based on billing type
   return planPrices[billingType as keyof typeof planPrices];
