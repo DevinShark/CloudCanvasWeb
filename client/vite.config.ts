@@ -24,11 +24,21 @@ export default defineConfig({
     include: ['lucide-react', '@marsidev/react-turnstile']
   },
   build: {
+    target: 'es2015',
     outDir: './dist',
     sourcemap: 'inline',
     assetsDir: 'assets',
     emptyOutDir: true,
     minify: 'terser',
+    terserOptions: {
+      ecma: 5,
+      compress: {
+        ecma: 5,
+      },
+      format: {
+        ecma: 5,
+      },
+    },
     commonjsOptions: {
       include: [/lucide-react/, /node_modules/]
     },
