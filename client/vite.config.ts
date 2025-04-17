@@ -25,13 +25,13 @@ export default defineConfig({
   },
   build: {
     outDir: './dist',
-    sourcemap: true,
+    sourcemap: 'inline',
     assetsDir: 'assets',
     emptyOutDir: true,
     minify: 'esbuild',
     rollupOptions: {
       output: {
-        sourcemap: true,
+        sourcemap: 'inline',
         manualChunks: {
           vendor: ['react', 'react-dom', 'wouter', '@marsidev/react-turnstile'],
         },
