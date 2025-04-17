@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Download, User } from "lucide-react";
+import { CheckCircle, Download, User, AlertCircle } from "lucide-react";
 import { executeSubscription } from "@/lib/paypal";
 import { generateLicense } from "@/lib/licenseGate";
 import Header from "@/components/layout/Header";
@@ -18,37 +18,65 @@ const SuccessPage = () => {
   
   useEffect(() => {
     const processPayment = async () => {
-      // Get URL parameters
-      const urlParams = new URLSearchParams(window.location.search);
-      const subscriptionId = urlParams.get('subscription_id');
-      const token = urlParams.get('token');
-      
-      if (!subscriptionId || !token) {
-        setError("Invalid payment information. Missing required parameters.");
-        setIsProcessing(false);
-        return;
-      }
-      
       try {
-        // Execute the subscription
-        const subscription = await executeSubscription(subscriptionId, token);
-        setSubscriptionId(subscription.id);
+        // Get URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const subscriptionId = urlParams.get('subscription_id');
+        const token = urlParams.get('token');
         
-        // Generate license key
-        const licenseKeyData = await generateLicense(subscription.id);
-        setLicenseKey(licenseKeyData);
-        
-        setIsSuccess(true);
+        // For PayPal subscriptions
+        if (subscriptionId && token) {
+          // Execute the subscription
+          const subscription = await executeSubscription(subscriptionId, token);
+          setSubscriptionId(subscription.id);
+          
+          // Generate license key
+          const licenseKeyData = await generateLicense(subscription.id);
+          setLicenseKey(licenseKeyData);
+          
+          setIsSuccess(true);
+        } 
+        // Fallback - check dashboard for existing licenses if we have a subscription ID but no confirmation
+        else if (subscriptionId) {
+          setSubscriptionId(subscriptionId);
+          // Redirect to dashboard where they can see their licenses
+          navigate("/dashboard");
+          return;
+        }
+        // Missing parameters - but don't show as error, just redirect to dashboard
+        else {
+          // If we don't have parameters but user is logged in, they might have a license
+          navigate("/dashboard");
+          return;
+        }
       } catch (err) {
         console.error("Payment processing error:", err);
-        setError("There was a problem processing your payment. Please contact support.");
+        // Even if there's an error, check if we have a license before showing the error
+        try {
+          const licenseCheck = await fetch("/api/licenses/check", {
+            method: "GET",
+            credentials: "include"
+          });
+          const licenseData = await licenseCheck.json();
+          
+          if (licenseData.success && licenseData.hasActiveLicense) {
+            // User already has an active license, so payment likely went through
+            setIsSuccess(true);
+            navigate("/dashboard");
+            return;
+          } else {
+            setError("There was a problem processing your payment. Please contact support.");
+          }
+        } catch (licenseErr) {
+          setError("There was a problem processing your payment. Please contact support.");
+        }
       } finally {
         setIsProcessing(false);
       }
     };
     
     processPayment();
-  }, []);
+  }, [navigate]);
   
   const handleDownloadLicense = () => {
     if (!licenseKey) return;
@@ -105,6 +133,7 @@ const SuccessPage = () => {
                         ) : (
                           <p className="text-gray-600">
                             Your license key is being generated and will be sent to your email address.
+                            You can also view all your licenses in your dashboard.
                           </p>
                         )}
                       </div>
@@ -127,6 +156,9 @@ const SuccessPage = () => {
                       <h1 className="text-2xl font-bold text-primary mb-4">Payment Processing Issue</h1>
                       <p className="text-gray-600 mb-8">
                         {error || "There was a problem processing your payment."}
+                      </p>
+                      <p className="text-gray-600 mb-8">
+                        If you've already been charged, please check your dashboard for your license or contact support.
                       </p>
                       <div className="flex flex-col sm:flex-row gap-4 justify-center">
                         <Button onClick={() => navigate("/dashboard")}>
