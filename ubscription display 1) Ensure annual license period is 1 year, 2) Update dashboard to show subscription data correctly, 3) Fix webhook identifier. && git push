@@ -1,0 +1,5 @@
+[33mcommit d9af58b9af798c2854068f20c43f3fc3d3255db5[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m
+Author: Cloud Canvas Admin <dms@live.co.za>
+Date:   Thu Apr 17 11:48:23 2025 +0200
+
+    Fix license duration and PayPal webhook issues
