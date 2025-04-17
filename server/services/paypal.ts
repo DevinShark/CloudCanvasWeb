@@ -7,7 +7,7 @@ import { getSubscriptionEndDate, getSubscriptionPrice } from "../lib/utils";
 const PAYPAL_API = process.env.PAYPAL_API_URL || "https://api-m.sandbox.paypal.com";
 const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID || "sandbox_client_id";
 const PAYPAL_SECRET = process.env.PAYPAL_SECRET || "sandbox_secret";
-const BASE_URL = process.env.FRONTEND_URL || "http://localhost:5000";
+const BASE_URL = process.env.FRONTEND_URL || "https://cloudcanvas.co.za";
 
 export class PayPalService {
   // Get access token for PayPal API
@@ -136,7 +136,7 @@ export class PayPalService {
               payer_selected: "PAYPAL",
               payee_preferred: "IMMEDIATE_PAYMENT_REQUIRED"
             },
-            return_url: `${BASE_URL}/success?subscription_id={subscription_id}`,
+            return_url: `${BASE_URL}/success`,
             cancel_url: `${BASE_URL}/#pricing`
           },
           subscriber: {
