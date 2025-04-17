@@ -1,5 +1,5 @@
 import fetch from "node-fetch";
-import { User, Subscription } from "@shared/schema";
+import { User, Subscription } from "../../shared/schema";
 import { storage } from "../storage";
 import { getSubscriptionEndDate, getSubscriptionPrice } from "../lib/utils";
 
@@ -136,7 +136,7 @@ export class PayPalService {
               payer_selected: "PAYPAL",
               payee_preferred: "IMMEDIATE_PAYMENT_REQUIRED"
             },
-            return_url: `${BASE_URL}/success?subscription_id={id}`,
+            return_url: `${BASE_URL}/success?subscription_id={subscription_id}`,
             cancel_url: `${BASE_URL}/#pricing`
           },
           subscriber: {
